@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нейросети и ИИ — как использовать в работе</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Навигация -->
+    <nav class="nav" id="nav">
+        <div class="nav-container">
+            <a href="#hero" class="nav-logo">AI Presentation</a>
+            <div class="nav-links">
+                <a href="#what-is-ai">Что такое ИИ</a>
+                <a href="#modalities">Модальности</a>
+                <a href="#models">Модели</a>
+                <a href="#departments">Отделы</a>
+                <a href="#recommendations">Рекомендации</a>
+            </div>
+            <div class="nav-toggle" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Герой-секция -->
+    <section class="hero" id="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Нейросети и ИИ</h1>
+            <p class="hero-subtitle">как использовать в работе</p>
+            <div class="hero-line"></div>
+            <p class="hero-meta">Доклад для сотрудников компании • 2026</p>
+        </div>
+        <div class="hero-bg"></div>
+    </section>
+
+    <!-- Что такое ИИ -->
+    <section class="section section-white" id="what-is-ai">
+        <div class="container">
+            <h2 class="section-title">Что такое ИИ</h2>
+            <p class="section-lead">Программа, которая учится на данных и делает выводы, которые раньше требовали человека</p>
+            
+            <div class="cards-grid three">
+                <div class="card card-animate">
+                    <div class="card-num" style="background: #2563EB;">01</div>
+                    <h3>Обучение</h3>
+                    <p>Модель «читает» огромные массивы текста, кода, изображений — и запоминает закономерности. Это как если бы человек прочитал миллионы книг за одну ночь.</p>
+                </div>
+                <div class="card card-animate">
+                    <div class="card-num" style="background: #7C3AED;">02</div>
+                    <h3>Инференс</h3>
+                    <p>При получении запроса модель предсказывает наиболее вероятный ответ, основываясь на том, что выучила. Не думает — считает вероятности.</p>
+                </div>
+                <div class="card card-animate">
+                    <div class="card-num" style="background: #EC4899;">03</div>
+                    <h3>Токены</h3>
+                    <p>Текст разбивается на маленькие кусочки. 1 токен ≈ 0.75 слова. Контекстное окно = сколько токенов модель помнит одновременно.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Модальности -->
+    <section class="section section-gray" id="modalities">
+        <div class="container">
+            <h2 class="section-title">Модальности</h2>
+            <p class="section-lead">Что модель может воспринимать на вход — для рабочих задач</p>
+            
+            <div class="cards-grid four">
+                <div class="card card-small card-animate">
+                    <div class="card-accent" style="background: #2563EB;"></div>
+                    <h4>Текст</h4>
+                    <p>Письма, документы, анализ, ответы</p>
+                </div>
+                <div class="card card-small card-animate">
+                    <div class="card-accent" style="background: #7C3AED;"></div>
+                    <h4>Код</h4>
+                    <p>Скрипты, баги, ревью, объяснение</p>
+                </div>
+                <div class="card card-small card-animate">
+                    <div class="card-accent" style="background: #EC4899;"></div>
+                    <h4>Изображение</h4>
+                    <p>Скриншот → цифры. Фото → аналоги. Скан → текст</p>
+                </div>
+                <div class="card card-small card-animate">
+                    <div class="card-accent" style="background: #22C55E;"></div>
+                    <h4>Аудио</h4>
+                    <p>Записи совещаний → расшифровка. Голосовые → текст</p>
+                </div>
+                <div class="card card-small card-animate">
+                    <div class="card-accent" style="background: #F59E0B;"></div>
+                    <h4>Видео</h4>
+                    <p>Ролики → summary, ключевые моменты</p>
+                </div>
+                <div class="card card-small card-animate">
+                    <div class="card-accent" style="background: #2563EB;"></div>
+                    <h4>Документы</h4>
+                    <p>Договоры → риски. Отчёты → тренды. Таблицы → ошибки</p>
+                </div>
+                <div class="card card-small card-animate">
+                    <div class="card-accent" style="background: #7C3AED;"></div>
+                    <h4>Многомодальность</h4>
+                    <p>Скрин + вопрос = анализ. Всё вместе</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Сравнительная таблица -->
+    <section class="section section-white" id="comparison">
+        <div class="container">
+            <h2 class="section-title">Сравнительная таблица моделей</h2>
+            
+            <div class="table-wrapper card-animate">
+                <table class="models-table">
+                    <thead>
+                        <tr>
+                            <th>Модель</th>
+                            <th>Разраб.</th>
+                            <th>VPN</th>
+                            <th>Текст</th>
+                            <th>Код</th>
+                            <th>Карт.</th>
+                            <th>Ауд.</th>
+                            <th>Вид.</th>
+                            <th>Док.</th>
+                            <th>Беспл. лимит</th>
+                            <th>Платный</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>Claude 4.7</strong></td><td>Anthropic</td><td>Да</td><td>●</td><td>●</td><td>●</td><td>—</td><td>—</td><td>●</td><td>~45к/3ч</td><td>$18–30</td></tr>
+                        <tr><td><strong>GPT-5.4</strong></td><td>OpenAI</td><td>Да</td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td><td>~40–80/3ч</td><td>$20</td></tr>
+                        <tr><td><strong>Gemini 3.1</strong></td><td>Google</td><td>Да</td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td><td>~60/мин</td><td>$20</td></tr>
+                        <tr><td><strong>Perplexity</strong></td><td>Perplexity</td><td>Да</td><td>●</td><td>●</td><td>—</td><td>—</td><td>—</td><td>●</td><td>~20/ч</td><td>$20</td></tr>
+                        <tr><td><strong>Grok 4</strong></td><td>xAI</td><td>Да</td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td><td>~25/2ч</td><td>$30</td></tr>
+                        <tr><td><strong>Kimi 2.6</strong></td><td>Moonshot</td><td>Нет</td><td>●</td><td>●</td><td>●</td><td>—</td><td>—</td><td>●</td><td>~100/мин</td><td>API</td></tr>
+                        <tr><td><strong>DeepSeek V4</strong></td><td>DeepSeek</td><td>Нет</td><td>●</td><td>●</td><td>●</td><td>—</td><td>—</td><td>●</td><td>∞</td><td>API $0.25</td></tr>
+                        <tr><td><strong>Qwen 3.6</strong></td><td>Alibaba</td><td>Нет</td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td><td>●</td><td>~120/мин</td><td>API</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Модели -->
+    <section class="section section-gray" id="models">
+        <div class="container">
+            <h2 class="section-title">Модели</h2>
+            <p class="section-lead">8 ключевых ИИ-моделей для работы</p>
+            
+            <div class="models-list">
+                <!-- Claude -->
+                <div class="model-card card-animate">
+                    <div class="model-header" style="background: linear-gradient(135deg, #2563EB, #1d4ed8);">
+                        <h3>Claude 4.7</h3>
+                        <span>Anthropic • Лидер Arena #1</span>
+                    </div>
+                    <div class="model-body">
+                        <div class="model-col">
+                            <h4 style="color: #22C55E;">Плюсы</h4>
+                            <ul>
+                                <li>Минимум галлюцинаций — скажет «не уверен»</li>
+                                <li>Контекст до 4M токенов (целая книга за раз)</li>
+                                <li>Отлично понимает инструкции. Самый «человечный» стиль</li>
+                            </ul>
+                            <h4 style="color: #EF4444;">Минусы</h4>
+                            <ul class="minuses">
+                                <li>Нет видео и аудио. Дорогой API. Нужен VPN</li>
+                                <li>Бесплатно — 45к токенов каждые 3 часа</li>
+                            </ul>
+                        </div>
+                        <div class="model-col">
+                            <div class="info-card">
+                                <h4>Для чего</h4>
+                                <p>Анализ длинных документов и договоров. Написание сложных текстов. Разработка.</p>
+                            </div>
+                            <div class="info-card price">
+                                <h4>Платный тариф</h4>
+                                <p>$18–30/мес — больше лимитов, ранний доступ</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GPT -->
+                <div class="model-card card-animate">
+                    <div class="model-header" style="background: linear-gradient(135deg, #7C3AED, #6d28d9);">
+                        <h3>GPT-5.4</h3>
+                        <span>OpenAI • Самая известная модель</span>
+                    </div>
+                    <div class="model-body">
+                        <div class="model-col">
+                            <h4 style="color: #22C55E;">Плюсы</h4>
+                            <ul>
+                                <li>Всё-в-одном: текст, код, картинки, видео, голос</li>
+                                <li>Экосистема: плагины, GPTs, интеграции везде</li>
+                                <li>Голосовой режим. Canvas — совместное редактирование</li>
+                            </ul>
+                            <h4 style="color: #EF4444;">Минусы</h4>
+                            <ul class="minuses">
+                                <li>Галлюцинирует чаще, чем Claude. Нужен VPN</li>
+                                <li>Бесплатно 40–80 сообщений/3ч. Дорогой API</li>
+                            </ul>
+                        </div>
+                        <div class="model-col">
+                            <div class="info-card">
+                                <h4>Для чего</h4>
+                                <p>Универсальные задачи. Генерация изображений. Голосовые диалоги.</p>
+                            </div>
+                            <div class="info-card price">
+                                <h4>Платный тариф</h4>
+                                <p>$20/мес — GPT-5.4 без лимитов, Canvas</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gemini -->
+                <div class="model-card card-animate">
+                    <div class="model-header" style="background: linear-gradient(135deg, #EC4899, #db2777);">
+                        <h3>Gemini 3.1</h3>
+                        <span>Google • Google-экосистема</span>
+                    </div>
+                    <div class="model-body">
+                        <div class="model-col">
+                            <h4 style="color: #22C55E;">Плюсы</h4>
+                            <ul>
+                                <li>Многомодальность: текст + картинки + видео + аудио</li>
+                                <li>2M контекст — 1500 страниц. Notebook LM</li>
+                                <li>Интеграция с Docs, Sheets, Drive, Gmail</li>
+                            </ul>
+                            <h4 style="color: #EF4444;">Минусы</h4>
+                            <ul class="minuses">
+                                <li>Нужен VPN. Иногда «врёт» увереннее других</li>
+                            </ul>
+                        </div>
+                        <div class="model-col">
+                            <div class="info-card">
+                                <h4>Для чего</h4>
+                                <p>Работа с Google-экосистемой. Анализ видео. Notebook LM.</p>
+                            </div>
+                            <div class="info-card price">
+                                <h4>Платный тариф</h4>
+                                <p>$20/мес — Gemini 3.1 Pro</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Perplexity -->
+                <div class="model-card card-animate">
+                    <div class="model-header" style="background: linear-gradient(135deg, #22C55E, #16a34a);">
+                        <h3>Perplexity</h3>
+                        <span>Perplexity • Поисковик с ИИ</span>
+                    </div>
+                    <div class="model-body">
+                        <div class="model-col">
+                            <h4 style="color: #22C55E;">Плюсы</h4>
+                            <ul>
+                                <li>Ищет в интернете в реальном времени. Ответы со ссылками</li>
+                                <li>Минимум галлюцинаций (опирается на факты)</li>
+                                <li>Pro Search по документам. Pro API — 3000/сутки</li>
+                            </ul>
+                            <h4 style="color: #EF4444;">Минусы</h4>
+                            <ul class="minuses">
+                                <li>Не умеет картинки/видео/аудио. Меньше контекста. VPN</li>
+                                <li>Бесплатно ~20 запросов/час</li>
+                            </ul>
+                        </div>
+                        <div class="model-col">
+                            <div class="info-card">
+                                <h4>Для чего</h4>
+                                <p>Поиск актуальной информации. Фактчекинг. Исследования.</p>
+                            </div>
+                            <div class="info-card price">
+                                <h4>Платный тариф</h4>
+                                <p>$20/мес — Pro Search, API</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grok -->
+                <div class="model-card card-animate">
+                    <div class="model-header" style="background: linear-gradient(135deg, #F59E0B, #d97706);">
+                        <h3>Grok 4</h3>
+                        <span>xAI • Доступ к X/Twitter</span>
+                    </div>
+                    <div class="model-body">
+                        <div class="model-col">
+                            <h4 style="color: #22C55E;">Плюсы</h4>
+                            <ul>
+                                <li>DeepSearch — поиск + X/Twitter в реальном времени</li>
+                                <li>Agentic Tasks — модель сама выполняет задачи</li>
+                                <li>Voice Mode. SuperGrok — ранний доступ</li>
+                            </ul>
+                            <h4 style="color: #EF4444;">Минусы</h4>
+                            <ul class="minuses">
+                                <li>Нужен VPN. Бесплатно мало токенов (25/2ч)</li>
+                                <li>Менее надёжен для серьёзных задач</li>
+                            </ul>
+                        </div>
+                        <div class="model-col">
+                            <div class="info-card">
+                                <h4>Для чего</h4>
+                                <p>Мониторинг трендов в X/Twitter. Быстрые задачи с агентами.</p>
+                            </div>
+                            <div class="info-card price">
+                                <h4>Платный тариф</h4>
+                                <p>$30/мес — больше токенов, ранний доступ</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kimi -->
+                <div class="model-card card-animate">
+                    <div class="model-header" style="background: linear-gradient(135deg, #06B6D4, #0891b2);">
+                        <h3>Kimi 2.6</h3>
+                        <span>Moonshot AI • Без VPN</span>
+                    </div>
+                    <div class="model-body">
+                        <div class="model-col">
+                            <h4 style="color: #22C55E;">Плюсы</h4>
+                            <ul>
+                                <li>Не нужен VPN — работает из России</li>
+                                <li>2M контекст. Agent Swarm — параллельные агенты</li>
+                                <li>Long-Context Inferencing. ~100 запросов/мин</li>
+                            </ul>
+                            <h4 style="color: #EF4444;">Минусы</h4>
+                            <ul class="minuses">
+                                <li>Нет видео и аудио. Интерфейс китайский/английский</li>
+                            </ul>
+                        </div>
+                        <div class="model-col">
+                            <div class="info-card">
+                                <h4>Для чего</h4>
+                                <p>Длинные документы. Сложные параллельные задачи. Программирование.</p>
+                            </div>
+                            <div class="info-card price">
+                                <h4>Платный тариф</h4>
+                                <p>Нет фиксированного — API по расходу</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DeepSeek -->
+                <div class="model-card card-animate">
+                    <div class="model-header" style="background: linear-gradient(135deg, #FBBF24, #f59e0b);">
+                        <h3>DeepSeek V4</h3>
+                        <span>DeepSeek • Цена/качество #1</span>
+                    </div>
+                    <div class="model-body">
+                        <div class="model-col">
+                            <h4 style="color: #22C55E;">Плюсы</h4>
+                            <ul>
+                                <li>Не нужен VPN. API в 20–50 раз дешевле западных</li>
+                                <li>#2 в Arena. MoE: 1.2T параметров, активны 32B</li>
+                                <li>Неограниченный бесплатный чат. DeepThink</li>
+                            </ul>
+                            <h4 style="color: #EF4444;">Минусы</h4>
+                            <ul class="minuses">
+                                <li>Нет видео и аудио. Спартанский интерфейс. Цензура</li>
+                            </ul>
+                        </div>
+                        <div class="model-col">
+                            <div class="info-card">
+                                <h4>Для чего</h4>
+                                <p>Разработка и API-интеграции. Сложные расчёты (DeepThink).</p>
+                            </div>
+                            <div class="info-card price">
+                                <h4>Платный тариф</h4>
+                                <p>API ~$0.25–0.50 за 1M токенов</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Qwen -->
+                <div class="model-card card-animate">
+                    <div class="model-header" style="background: linear-gradient(135deg, #EF4444, #dc2626);">
+                        <h3>Qwen 3.6</h3>
+                        <span>Alibaba • Универсальная (без VPN)</span>
+                    </div>
+                    <div class="model-body">
+                        <div class="model-col">
+                            <h4 style="color: #22C55E;">Плюсы</h4>
+                            <ul>
+                                <li>Не нужен VPN. Мультимодальность: всё-в-одном</li>
+                                <li>Agentic Mode + Swarm Mode. QwQ-vision</li>
+                                <li>2.56M контекст. ~120 запросов/мин</li>
+                            </ul>
+                            <h4 style="color: #EF4444;">Минусы</h4>
+                            <ul class="minuses">
+                                <li>Интерфейс китайский/английский. Видео/аудио уступает</li>
+                            </ul>
+                        </div>
+                        <div class="model-col">
+                            <div class="info-card">
+                                <h4>Для чего</h4>
+                                <p>Универсальные задачи без VPN. Изображения/видео. Агенты.</p>
+                            </div>
+                            <div class="info-card price">
+                                <h4>Платный тариф</h4>
+                                <p>Нет фиксированного — API по расходу</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Фишки -->
+    <section class="section section-white" id="features">
+        <div class="container">
+            <h2 class="section-title">Зачем именно эта модель?</h2>
+            
+            <div class="features-grid">
+                <div class="feature-item card-animate">
+                    <div class="feature-dot" style="background: #2563EB;"></div>
+                    <div>
+                        <h4>Claude</h4>
+                        <p>4M контекст + минимум галлюцинаций → точность на длинных документах</p>
+                    </div>
+                </div>
+                <div class="feature-item card-animate">
+                    <div class="feature-dot" style="background: #7C3AED;"></div>
+                    <div>
+                        <h4>GPT-5.4</h4>
+                        <p>Голос + Canvas + всё-в-одном → универсальный помощник</p>
+                    </div>
+                </div>
+                <div class="feature-item card-animate">
+                    <div class="feature-dot" style="background: #EC4899;"></div>
+                    <div>
+                        <h4>Gemini</h4>
+                        <p>Notebook LM + 2M контекст + Google → работа в Google-экосистеме</p>
+                    </div>
+                </div>
+                <div class="feature-item card-animate">
+                    <div class="feature-dot" style="background: #22C55E;"></div>
+                    <div>
+                        <h4>Perplexity</h4>
+                        <p>Поиск с источниками в реальном времени → факты, а не домыслы</p>
+                    </div>
+                </div>
+                <div class="feature-item card-animate">
+                    <div class="feature-dot" style="background: #F59E0B;"></div>
+                    <div>
+                        <h4>Grok</h4>
+                        <p>DeepSearch + Agentic Tasks + доступ к X → тренды и агенты</p>
+                    </div>
+                </div>
+                <div class="feature-item card-animate">
+                    <div class="feature-dot" style="background: #06B6D4;"></div>
+                    <div>
+                        <h4>Kimi</h4>
+                        <p>Agent Swarm + 2M контекст без VPN → сложные задачи без VPN</p>
+                    </div>
+                </div>
+                <div class="feature-item card-animate">
+                    <div class="feature-dot" style="background: #FBBF24;"></div>
+                    <div>
+                        <h4>DeepSeek</h4>
+                        <p>MoE + дёшевый API + DeepThink → экономия и сложные расчёты</p>
+                    </div>
+                </div>
+                <div class="feature-item card-animate">
+                    <div class="feature-dot" style="background: #EF4444;"></div>
+                    <div>
+                        <h4>Qwen</h4>
+                        <p>Swarm Mode + Agentic + QwQ-vision → всё-в-одном без VPN</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- LM Arena -->
+    <section class="section section-gray" id="arena">
+        <div class="container">
+            <h2 class="section-title">LM Arena</h2>
+            <p class="section-lead">Бесплатный способ попробовать любую модель</p>
+            
+            <div class="cards-grid two">
+                <div class="card card-animate">
+                    <div class="card-accent" style="background: #2563EB;"></div>
+                    <h3>Как работает</h3>
+                    <p>Вводите вопрос → получаете два ответа от анонимных моделей → голосуете за лучший → узнаёте, кто победил.<br><br>Рейтинг Elo — объективная таблица лидеров.</p>
+                </div>
+                <div class="card card-animate">
+                    <div class="card-accent" style="background: #7C3AED;"></div>
+                    <h3>Что есть в 2026</h3>
+                    <p>Text Arena — текстовые модели.<br>Video Arena — генерация видео.<br>Image Arena — картинки.<br>Мультимодальные сравнения.</p>
+                </div>
+            </div>
+            
+            <div class="badge-container card-animate">
+                <span class="badge">Регистрация бесплатная. Карта не нужна.</span>
+                <p class="text-muted">lmarena.ai</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Robomonkey -->
+    <section class="section section-white" id="robomonkey">
+        <div class="container">
+            <h2 class="section-title">Robomonkey</h2>
+            <p class="section-lead">Автоматизация процессов без программирования</p>
+            
+            <div class="cards-grid two">
+                <div class="card card-animate">
+                    <div class="card-accent" style="background: #7C3AED;"></div>
+                    <h3>Как работает</h3>
+                    <p>Описываете задачу текстом → Robomonkey генерирует Chrome-расширение → устанавливаете в браузер → работает само.<br><br>Сбор данных, парсинг, автозаполнение форм, мониторинг цен.</p>
+                </div>
+                <div class="card card-animate">
+                    <div class="card-accent" style="background: #EC4899;"></div>
+                    <h3>Альтернативы 2026</h3>
+                    <p>Stagehand — для разработчиков (open-source).<br>Gumloop — no-code для бизнеса.<br>Browser Use — Python для кодеров.<br>Make.com / n8n — связка сервисов.</p>
+                </div>
+            </div>
+            
+            <div class="badge-container card-animate">
+                <span class="badge">Экономия 90–95% стоимости виртуального ассистента</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI-разработка -->
+    <section class="section section-gray" id="ai-dev">
+        <div class="container">
+            <h2 class="section-title">AI-разработка без программиста</h2>
+            
+            <div class="cards-grid four">
+                <div class="card card-animate">
+                    <div class="card-accent" style="background: #2563EB;"></div>
+                    <h4>Lovable</h4>
+                    <p>Генерация веб-приложений и сайтов из текста → MVP, лендинг, внутренний инструмент</p>
+                </div>
+                <div class="card card-animate">
+                    <div class="card-accent" style="background: #7C3AED;"></div>
+                    <h4>Blink.new</h4>
+                    <p>Создание сайтов с AI-дизайном → красивый сайт за минуты</p>
+                </div>
+                <div class="card card-animate">
+                    <div class="card-accent" style="background: #22C55E;"></div>
+                    <h4>Bolt.new</h4>
+                    <p>AI-разработка на Next.js / React → настоящий код под капотом</p>
+                </div>
+                <div class="card card-animate">
+                    <div class="card-accent" style="background: #F59E0B;"></div>
+                    <h4>Hercules.app</h4>
+                    <p>Внутренние бизнес-приложения → CRM, дашборды, формы без IT</p>
+                </div>
+            </div>
+            
+            <div class="text-block card-animate">
+                <p>Принцип: «Сделай сайт для приёма заявок с полями имя, телефон, выбор услуги и отправкой в Telegram» — платформа генерирует работающий сайт. Не нужно уметь кодить.</p>
+            </div>
+            
+            <div class="badge-container card-animate">
+                <span class="badge" style="background: #2563EB;">Для бизнеса: прототипы за часы, внутренние инструменты без IT</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Отделы -->
+    <section class="section section-white" id="departments">
+        <div class="container">
+            <h2 class="section-title">Задачи по отделам</h2>
+            <p class="section-lead">Как ИИ помогает каждому отделу компании</p>
+            
+            <!-- Бухгалтерия -->
+            <div class="dept-section card-animate" id="accounting">
+                <div class="dept-header" style="background: linear-gradient(135deg, #22C55E, #16a34a);">
+                    <h3>БУХГАЛТЕРИЯ</h3>
+                    <span>Распознавание, сверка, проверка</span>
+                </div>
+                <div class="dept-body">
+                    <div class="dept-col">
+                        <h4>Задачи</h4>
+                        <ul>
+                            <li>Распознавание первичных документов (счета, акты, накладные) → структурированные данные</li>
+                            <li>Сверка банковской выписки с 1С и выявление расхождений</li>
+                            <li>Проверка правильности проводок и соответствия учетной политике</li>
+                            <li>Подготовка форм налоговых деклараций по шаблонам</li>
+                            <li>Анализ дебиторской / кредиторской задолженности</li>
+                        </ul>
+                    </div>
+                    <div class="dept-col">
+                        <div class="info-card">
+                            <h4>Платные ИИ</h4>
+                            <p>Claude — лучший для структурирования длинных документов. GPT-4 — универсальный (Canvas для таблиц).</p>
+                        </div>
+                        <div class="info-card free">
+                            <h4>Бесплатные ИИ</h4>
+                            <p>DeepSeek — неограниченно, без VPN, отлично справляется с таблицами. Qwen — 120 запросов/мин.</p>
+                        </div>
+                    </div>
+                    <div class="dept-col">
+                        <h4>Промпты</h4>
+                        <div class="prompt-box">
+                            <span class="prompt-num">1</span>
+                            <p>Я загрузил скан 50 счетов поставщиков. Извлеки из каждого: ИНН, КПП, сумму, дату, номер счета. Сформируй таблицу.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">2</span>
+                            <p>Сверь эту банковскую выписку с данными из 1С. Найди расхождения по суммам и датам.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">3</span>
+                            <p>Проверь правильность проводки: Дебет 62 Кредит 90 на сумму 150 000 руб. Это реализация услуг.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Финансы -->
+            <div class="dept-section card-animate" id="finance">
+                <div class="dept-header" style="background: linear-gradient(135deg, #2563EB, #1d4ed8);">
+                    <h3>ФИНАНСЫ</h3>
+                    <span>Прогнозирование, бюджеты, сценарии</span>
+                </div>
+                <div class="dept-body">
+                    <div class="dept-col">
+                        <h4>Задачи</h4>
+                        <ul>
+                            <li>Прогнозирование cash flow на основе исторических данных</li>
+                            <li>Сценарное моделирование (оптимистичный, реалистичный, пессимистичный)</li>
+                            <li>Подготовка отчетности для совета директоров / инвесторов</li>
+                            <li>Анализ инвестиционных проектов (NPV, IRR, срок окупаемости)</li>
+                            <li>Выявление аномалий в финансовых данных</li>
+                        </ul>
+                    </div>
+                    <div class="dept-col">
+                        <div class="info-card">
+                            <h4>Платные ИИ</h4>
+                            <p>Claude — точность и структура для сложных расчетов. GPT-4 — Canvas для совместной работы с Excel.</p>
+                        </div>
+                        <div class="info-card free">
+                            <h4>Бесплатные ИИ</h4>
+                            <p>DeepSeek — DeepThink для сложных расчетов, без VPN. Kimi — 2M контекст для больших таблиц.</p>
+                        </div>
+                    </div>
+                    <div class="dept-col">
+                        <h4>Промпты</h4>
+                        <div class="prompt-box">
+                            <span class="prompt-num">1</span>
+                            <p>На основе данных о выручке за 24 месяца построй прогноз cash flow на следующие 6 месяцев. Учти сезонность.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">2</span>
+                            <p>Построй 3 сценария при росте выручки: +10%, +20%, +30%. Для каждого посчитай EBITDA и точку безубыточности.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">3</span>
+                            <p>Проанализируй этот Excel-файл с P&L. Найди 3 главных отклонения от бюджета и объясни причины.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Юристы -->
+            <div class="dept-section card-animate" id="legal">
+                <div class="dept-header" style="background: linear-gradient(135deg, #7C3AED, #6d28d9);">
+                    <h3>ЮРИСТЫ</h3>
+                    <span>Анализ договоров, риски, претензии</span>
+                </div>
+                <div class="dept-body">
+                    <div class="dept-col">
+                        <h4>Задачи</h4>
+                        <ul>
+                            <li>Анализ договоров на предмет рисковых пунктов</li>
+                            <li>Сравнение двух редакций одного документа</li>
+                            <li>Подготовка претензий, исковых заявлений по шаблонам</li>
+                            <li>Проверка compliance с законодательством</li>
+                            <li>Поиск судебной практики по аналогичным делам</li>
+                        </ul>
+                    </div>
+                    <div class="dept-col">
+                        <div class="info-card">
+                            <h4>Платные ИИ</h4>
+                            <p>Claude 4 — минимум галлюцинаций, 4M контекст для длинных договоров. GPT-4 — для генерации документов.</p>
+                        </div>
+                        <div class="info-card free">
+                            <h4>Бесплатные ИИ</h4>
+                            <p>DeepSeek — без VPN, неограниченно. Perplexity — поиск судебной практики с источниками.</p>
+                        </div>
+                    </div>
+                    <div class="dept-col">
+                        <h4>Промпты</h4>
+                        <div class="prompt-box">
+                            <span class="prompt-num">1</span>
+                            <p>Проанализируй этот договор поставки. Найди: неблагоприятные условия оплаты, отсутствие штрафных санкций, рисковые пункты о возврате.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">2</span>
+                            <p>Сравни две редакции NDA. Выдели все изменения, которые увеличивают риски для нашей компании. Оформи таблицу: пункт, было, стало, риск.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">3</span>
+                            <p>Подготовь претензию поставщику о нарушении сроков поставки по договору №123 от 01.03.2026.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Продакты -->
+            <div class="dept-section card-animate" id="product">
+                <div class="dept-header" style="background: linear-gradient(135deg, #F59E0B, #d97706);">
+                    <h3>ПРОДАКТЫ</h3>
+                    <span>Отзывы, ТЗ, конкуренты, приоритизация</span>
+                </div>
+                <div class="dept-body">
+                    <div class="dept-col">
+                        <h4>Задачи</h4>
+                        <ul>
+                            <li>Анализ пользовательских отзывов и выявление болей</li>
+                            <li>Написание user stories и acceptance criteria</li>
+                            <li>Исследование конкурентов (фичи, цены, positioning)</li>
+                            <li>Приоритизация бэклога (RICE, MoSCoW)</li>
+                            <li>Подготовка ТЗ для разработчиков</li>
+                        </ul>
+                    </div>
+                    <div class="dept-col">
+                        <div class="info-card">
+                            <h4>Платные ИИ</h4>
+                            <p>GPT-4 — Canvas для документов. Claude — структурирование сложных ТЗ.</p>
+                        </div>
+                        <div class="info-card free">
+                            <h4>Бесплатные ИИ</h4>
+                            <p>Kimi — Agent Swarm для параллельных задач. Qwen — Swarm Mode.</p>
+                        </div>
+                    </div>
+                    <div class="dept-col">
+                        <h4>Промпты</h4>
+                        <div class="prompt-box">
+                            <span class="prompt-num">1</span>
+                            <p>Вот 500 отзывов наших клиентов с Wildberries. Выдели топ-10 проблем и сгруппируй по категориям.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">2</span>
+                            <p>Напиши user story для функции: клиент хочет отслеживать доставку в личном кабинете. Acceptance criteria, критерии готовности.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">3</span>
+                            <p>Проанализируй 3 конкурента в нише БАДов. Сравни: цены, состав, упаковку, каналы продаж. Сформируй SWOT-анализ.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Коммерческий -->
+            <div class="dept-section card-animate" id="commercial">
+                <div class="dept-header" style="background: linear-gradient(135deg, #EC4899, #db2777);">
+                    <h3>КОММЕРЧЕСКИЙ</h3>
+                    <span>Скрипты, КП, воронка, реактивация</span>
+                </div>
+                <div class="dept-body">
+                    <div class="dept-col">
+                        <h4>Задачи</h4>
+                        <ul>
+                            <li>Написание скриптов продаж и возражений</li>
+                            <li>Подготовка коммерческих предложений (КП)</li>
+                            <li>Анализ воронки продаж и выявление узких мест</li>
+                            <li>Реактивация «спящих» клиентов</li>
+                            <li>Сегментация клиентской базы</li>
+                        </ul>
+                    </div>
+                    <div class="dept-col">
+                        <div class="info-card">
+                            <h4>Платные ИИ</h4>
+                            <p>GPT-4 — генерация текстов и скриптов. Claude — анализ данных воронки.</p>
+                        </div>
+                        <div class="info-card free">
+                            <h4>Бесплатные ИИ</h4>
+                            <p>Grok — доступ к трендам в X/Twitter. DeepSeek — для аналитики.</p>
+                        </div>
+                    </div>
+                    <div class="dept-col">
+                        <h4>Промпты</h4>
+                        <div class="prompt-box">
+                            <span class="prompt-num">1</span>
+                            <p>Напиши 5 вариантов письма для реактивации клиентов, которые не купили 90 дней. Тон: дружелюбный, без давления.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">2</span>
+                            <p>Проанализируй воронку: 1000 лидов → 300 встреч → 80 КП → 20 сделок. Найди узкие места. Дай 3 рекомендации.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">3</span>
+                            <p>Составь коммерческое предложение для B2B-клиента на поставку БАДов оптом. Условия: от 100 шт — скидка 20%.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Топы -->
+            <div class="dept-section card-animate" id="management">
+                <div class="dept-header" style="background: linear-gradient(135deg, #FBBF24, #f59e0b);">
+                    <h3>ТОП-МЕНЕДЖМЕНТ</h3>
+                    <span>Стратегия, due diligence, выходы на рынки</span>
+                </div>
+                <div class="dept-body">
+                    <div class="dept-col">
+                        <h4>Задачи</h4>
+                        <ul>
+                            <li>Стратегический анализ и сценарное планирование</li>
+                            <li>Due diligence при acquisitions / партнерствах</li>
+                            <li>Структурирование сложных решений</li>
+                            <li>Подготовка к совещаниям и публичным выступлениям</li>
+                            <li>Анализ новых рынков и точек входа</li>
+                        </ul>
+                    </div>
+                    <div class="dept-col">
+                        <div class="info-card">
+                            <h4>Платные ИИ</h4>
+                            <p>Claude — точность, структура, минимум галлюцинаций. GPT-4 — всё-в-одном.</p>
+                        </div>
+                        <div class="info-card free">
+                            <h4>Бесплатные ИИ</h4>
+                            <p>DeepSeek — DeepThink для сложных рассуждений. Perplexity — исследования рынков.</p>
+                        </div>
+                    </div>
+                    <div class="dept-col">
+                        <h4>Промпты</h4>
+                        <div class="prompt-box">
+                            <span class="prompt-num">1</span>
+                            <p>Проанализируй 3 варианта выхода нашего бренда БАДов на рынок Казахстана. Для каждого: бюджет, сроки, риски, конкуренты.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">2</span>
+                            <p>Мы рассматриваем покупку компании-производителя БАДов. Проведи due diligence: какие риски, что проверять. Оформи чек-лист.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">3</span>
+                            <p>Подготовь структуру 15-минутного выступления на конференции о внедрении ИИ в компанию. Аудитория: 200 CEO.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Аналитики -->
+            <div class="dept-section card-animate" id="analytics">
+                <div class="dept-header" style="background: linear-gradient(135deg, #06B6D4, #0891b2);">
+                    <h3>АНАЛИТИКИ</h3>
+                    <span>Данные, SQL, визуализация, прогнозирование</span>
+                </div>
+                <div class="dept-body">
+                    <div class="dept-col">
+                        <h4>Задачи</h4>
+                        <ul>
+                            <li>Обработка и очистка больших данных</li>
+                            <li>Написание SQL-запросов для сложных отчетов</li>
+                            <li>Визуализация данных (Python, Excel, BI)</li>
+                            <li>Прогнозирование (временные ряды, регрессия)</li>
+                            <li>A/B тестирование и статистическая значимость</li>
+                        </ul>
+                    </div>
+                    <div class="dept-col">
+                        <div class="info-card">
+                            <h4>Платные ИИ</h4>
+                            <p>Claude — кодинг, объяснение сложных запросов. GPT-4 — Canvas для совместной работы.</p>
+                        </div>
+                        <div class="info-card free">
+                            <h4>Бесплатные ИИ</h4>
+                            <p>DeepSeek — лучший для кода, без VPN. Kimi — 2M контекст. Gemini — интеграция с Google Sheets.</p>
+                        </div>
+                    </div>
+                    <div class="dept-col">
+                        <h4>Промпты</h4>
+                        <div class="prompt-box">
+                            <span class="prompt-num">1</span>
+                            <p>Напиши SQL-запрос для отчета: выручка по регионам за последний квартал с динамикой к предыдущему. Добавь ранжирование регионов по росту.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">2</span>
+                            <p>Загрузи этот CSV (10 000 строк). Найди аномалии: выбросы, пропуски, дубликаты. Построй гистограмму. Выдай summary.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">3</span>
+                            <p>У нас данные о 2 вариантах лендинга (A и B). 1000 показов каждому, конверсия A = 3.2%, B = 4.1%. Рассчитай p-value.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HR -->
+            <div class="dept-section card-animate" id="hr">
+                <div class="dept-header" style="background: linear-gradient(135deg, #22C55E, #16a34a);">
+                    <h3>HR И ПОДБОР</h3>
+                    <span>Вакансии, скрининг, адаптация, обратная связь</span>
+                </div>
+                <div class="dept-body">
+                    <div class="dept-col">
+                        <h4>Задачи</h4>
+                        <ul>
+                            <li>Составление привлекательных вакансий</li>
+                            <li>Скрининг резюме и ранжирование кандидатов</li>
+                            <li>Составление планов адаптации</li>
+                            <li>Описание компетенций и KPI</li>
+                            <li>Подготовка обратной связи (review, 1-on-1)</li>
+                        </ul>
+                    </div>
+                    <div class="dept-col">
+                        <div class="info-card">
+                            <h4>Платные ИИ</h4>
+                            <p>Claude — структурирование, анализ резюме. GPT-4 — генерация текстов, Canvas.</p>
+                        </div>
+                        <div class="info-card free">
+                            <h4>Бесплатные ИИ</h4>
+                            <p>Kimi — обработка больших массивов резюме (2M контекст). Qwen — Swarm Mode.</p>
+                        </div>
+                    </div>
+                    <div class="dept-col">
+                        <h4>Промпты</h4>
+                        <div class="prompt-box">
+                            <span class="prompt-num">1</span>
+                            <p>Вот 50 резюме на позицию Product Manager. Проанализируй каждое по критериям: опыт в e-commerce, знание Agile, аналитические навыки. Выдели топ-10.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">2</span>
+                            <p>Напиши план адаптации нового менеджера по продажам на первые 30 дней. Добавь чек-листы.</p>
+                        </div>
+                        <div class="prompt-box">
+                            <span class="prompt-num">3</span>
+                            <p>Составь вакансию на позицию SMM-менеджера для бренда БАДов. Тон: молодежный, энергичный. Добавь 3 необычных требования.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Рекомендации -->
+    <section class="section section-gray" id="recommendations">
+        <div class="container">
+            <h2 class="section-title">Рекомендации по работе с ИИ</h2>
+            
+            <div class="recommendations-grid">
+                <div class="rec-card card-animate">
+                    <div class="rec-num" style="background: #2563EB;">01</div>
+                    <h4>Если не уверены — обсудите с другой моделью</h4>
+                    <p>Задайте тот же вопрос Claude, GPT и DeepSeek. Если все три говорят одно — можно доверять.</p>
+                </div>
+                <div class="rec-card card-animate">
+                    <div class="rec-num" style="background: #7C3AED;">02</div>
+                    <h4>Формулируйте результат, не задачу</h4>
+                    <p>Плохо: «Вот отчёт, сделай что-нибудь». Хорошо: «Выдели 3 тренда и предложи 2 действия».</p>
+                </div>
+                <div class="rec-card card-animate">
+                    <div class="rec-num" style="background: #22C55E;">03</div>
+                    <h4>Вначале план, потом реализация</h4>
+                    <p>Сначала составьте план и согласуйте его. Только потом выполняйте.</p>
+                </div>
+                <div class="rec-card card-animate">
+                    <div class="rec-num" style="background: #F59E0B;">04</div>
+                    <h4>Заставьте ИИ задать вопросы</h4>
+                    <p>«Есть вопросы? Всё ли понятно?» — лучшие результаты даёт диалог, не монолог.</p>
+                </div>
+                <div class="rec-card card-animate">
+                    <div class="rec-num" style="background: #EC4899;">05</div>
+                    <h4>Разбивайте сложное на шаги</h4>
+                    <p>Не «напиши бизнес-план». Разбейте: структура → рынок → экономика → риски.</p>
+                </div>
+                <div class="rec-card card-animate">
+                    <div class="rec-num" style="background: #2563EB;">06</div>
+                    <h4>Давайте контекст</h4>
+                    <p>«Ты финдиректор, готовишь презентацию для совета директоров» — результат в разы точнее.</p>
+                </div>
+                <div class="rec-card card-animate">
+                    <div class="rec-num" style="background: #EF4444;">07</div>
+                    <h4>Проверяйте факты</h4>
+                    <p>ИИ уверенно выдумывает даты и ссылки. Всегда перепроверяйте.</p>
+                </div>
+                <div class="rec-card card-animate">
+                    <div class="rec-num" style="background: #7C3AED;">08</div>
+                    <h4>Системные промпты для рутины</h4>
+                    <p>«Ты аналитик. Каждый CSV → аномалии, топ-3 тренда, рекомендации» — экономит время.</p>
+                </div>
+                <div class="rec-card card-animate">
+                    <div class="rec-num" style="background: #22C55E;">09</div>
+                    <h4>Конфиденциальность</h4>
+                    <p>Для чувствительных данных — локальные модели (DeepSeek, Qwen) или корпоративные тарифы.</p>
+                </div>
+            </div>
+            
+            <div class="text-block card-animate" style="margin-top: 60px;">
+                <p style="font-weight: 600; color: #0F172A; font-size: 1.2em;">Главное: ИИ — инструмент. Результат зависит от того, насколько точно вы формулируете задачу.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Футер -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 — Презентация для сотрудников компании</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
