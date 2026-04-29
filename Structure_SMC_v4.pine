@@ -1,0 +1,253 @@
+//@version=6
+strategy("Structure + SMC v4", shorttitle="SMCv4_Strat", overlay=true,
+         max_lines_count=500, max_labels_count=200, max_boxes_count=500,
+         default_qty_type=strategy.fixed, default_qty_value=1,
+         commission_type=strategy.commission.percent, commission_value=0.025,
+         margin_long=12.5, margin_short=12.5,
+         process_orders_on_close=true)
+
+// ═══════════════════════════════════════════════════════════════
+//  SMC-ЭДИЦИЯ: Order Blocks + Liquidity Sweeps + OTE + Triple VWAP
+//  База: Structure H1 (left=3, right=5, Sharpe 2.83)
+// ═══════════════════════════════════════════════════════════════
+
+// ─── НАСТРОЙКИ СТРАТЕГИИ ────────────────────────────────────
+swing_left  = input.int (3,  "Swing Left",  minval=1, maxval=20, group="Стратегия")
+swing_right = input.int (5,  "Swing Right", minval=1, maxval=20, group="Стратегия")
+atr_len     = input.int (14, "ATR Period", group="Стратегия")
+atr_mult    = input.float(1.0, "ATR × SL", step=0.1, group="Стратегия")
+tp_ratio    = input.float(1.5, "TP Ratio", step=0.1, group="Стратегия")
+
+// ─── НАСТРОЙКИ SMC ──────────────────────────────────────────
+ob_count    = input.int(20, "OB Count (на графике)", minval=1, maxval=50, group="SMC")
+ob_extend   = input.int(20, "OB Extend (бары вправо)", minval=5, maxval=200, group="SMC")
+show_sweeps = input.bool(true, "Показывать Liquidity Sweeps", group="SMC")
+show_ote    = input.bool(true, "Показывать OTE-зоны", group="SMC")
+
+// ─── НАСТРОЙКИ VWAP ─────────────────────────────────────────
+vwap1_tf  = input.string("60",  "VWAP 1 TF", options=["15","30","60","120","240","D","W","M"], group="VWAP 1")
+vwap1_msk = input.bool(false, "09:00 МСК (иначе UTC 00:00)", group="VWAP 1")
+vwap2_tf  = input.string("240", "VWAP 2 TF", options=["15","30","60","120","240","D","W","M"], group="VWAP 2")
+vwap2_msk = input.bool(false, "09:00 МСК", group="VWAP 2")
+vwap3_tf  = input.string("D",   "VWAP 3 TF", options=["15","30","60","120","240","D","W","M"], group="VWAP 3")
+vwap3_msk = input.bool(true,  "09:00 МСК", group="VWAP 3")
+
+// ═══════════════════════════════════════════════════════════════
+//  СВИНГИ И СИГНАЛЫ (оригинальная логика)
+// ═══════════════════════════════════════════════════════════════
+ph = ta.pivothigh(high, swing_left, swing_right)
+pl = ta.pivotlow (low,  swing_left, swing_right)
+
+var float sh1 = na, var float sh2 = na, var float sh3 = na
+var float sl1 = na, var float sl2 = na, var float sl3 = na
+
+var bool longFired  = false
+var bool shortFired = false
+
+if not na(ph)
+    sh3 := sh2, sh2 := sh1, sh1 := ph
+    shortFired := false
+
+if not na(pl)
+    sl3 := sl2, sl2 := sl1, sl1 := pl
+    longFired := false
+
+longCond  = not na(pl) and not na(sl1) and not na(sl2) and not na(sl3) and not longFired
+longStr   = sl3 > sl2 and sl1 > sl2
+longSig   = longCond and longStr
+
+shortCond = not na(ph) and not na(sh1) and not na(sh2) and not na(sh3) and not shortFired
+shortStr  = sh3 < sh2 and sh1 < sh2
+shortSig  = shortCond and shortStr
+
+if longSig
+    longFired := true
+if shortSig
+    shortFired := true
+
+// ─── ATR И ВХОДЫ / ВЫХОДЫ ──────────────────────────────────
+atrVal = ta.atr(atr_len)
+
+var float longStop   = na
+var float longTarget = na
+var float shortStop  = na
+var float shortTarget= na
+
+if longSig and strategy.position_size <= 0
+    risk       = atrVal * atr_mult
+    entry      = close
+    longStop   := entry - risk
+    longTarget := entry + risk * tp_ratio
+    strategy.entry("Long", strategy.long)
+    strategy.exit("LongX", from_entry="Long", stop=longStop, limit=longTarget)
+
+if shortSig and strategy.position_size >= 0
+    risk        = atrVal * atr_mult
+    entry       = close
+    shortStop   := entry + risk
+    shortTarget := entry - risk * tp_ratio
+    strategy.entry("Short", strategy.short)
+    strategy.exit("ShortX", from_entry="Short", stop=shortStop, limit=shortTarget)
+
+// ═══════════════════════════════════════════════════════════════
+//  ORDER BLOCKS
+// ═══════════════════════════════════════════════════════════════
+// Запоминаем бары и цены последних свингов для рисования OB
+var int   last_ph_bar = na
+var float last_ph_high = na
+var float last_ph_low  = na
+var int   last_pl_bar = na
+var float last_pl_low  = na
+var float last_pl_high = na
+
+if not na(ph)
+    last_ph_bar  := bar_index[swing_right]
+    last_ph_high := high[swing_right]
+    last_ph_low  := low[swing_right]
+
+if not na(pl)
+    last_pl_bar  := bar_index[swing_right]
+    last_pl_low  := low[swing_right]
+    last_pl_high := high[swing_right]
+
+// Хранилище OB
+var box[] ob_boxes   = array.new_box(0)
+var int[] ob_lefts   = array.new_int(0)
+var bool[] ob_bulls  = array.new_bool(0)
+
+// При росте к ph — рисуем Bullish OB от последнего pl (начало импульса)
+if not na(ph) and not na(last_pl_bar)
+    if array.size(ob_boxes) >= ob_count
+        box.delete(array.shift(ob_boxes))
+        array.shift(ob_lefts)
+        array.shift(ob_bulls)
+
+    b = box.new(left=last_pl_bar, top=last_pl_high, right=bar_index + ob_extend,
+                bottom=last_pl_low, bgcolor=color.new(#00e676, 90),
+                border_color=color.new(#00e676, 60), border_width=1)
+    array.push(ob_boxes, b)
+    array.push(ob_lefts, last_pl_bar)
+    array.push(ob_bulls, true)
+
+// При падении к pl — рисуем Bearish OB от последнего ph
+if not na(pl) and not na(last_ph_bar)
+    if array.size(ob_boxes) >= ob_count
+        box.delete(array.shift(ob_boxes))
+        array.shift(ob_lefts)
+        array.shift(ob_bulls)
+
+    b = box.new(left=last_ph_bar, top=last_ph_high, right=bar_index + ob_extend,
+                bottom=last_ph_low, bgcolor=color.new(#ff3b3b, 90),
+                border_color=color.new(#ff3b3b, 60), border_width=1)
+    array.push(ob_boxes, b)
+    array.push(ob_lefts, last_ph_bar)
+    array.push(ob_bulls, false)
+
+// Обновляем правую границу всех OB (живые зоны)
+if barstate.isconfirmed
+    for i = 0 to array.size(ob_boxes) - 1
+        b = array.get(ob_boxes, i)
+        box.set_right(b, bar_index + ob_extend)
+
+// ═══════════════════════════════════════════════════════════════
+//  LIQUIDITY SWEEPS
+// ═══════════════════════════════════════════════════════════════
+sweepHigh = show_sweeps and not na(sh1) and high > sh1 and close < sh1
+sweepLow  = show_sweeps and not na(sl1) and low  < sl1 and close > sl1
+
+plotshape(sweepHigh, "Sweep High", style=shape.triangledown, location=location.abovebar,
+          color=color.new(#ff9800, 0), size=size.small, text="S", textcolor=color.white)
+plotshape(sweepLow,  "Sweep Low",  style=shape.triangleup,   location=location.belowbar,
+          color=color.new(#ff9800, 0), size=size.small, text="S", textcolor=color.white)
+
+// ═══════════════════════════════════════════════════════════════
+//  OTE — OPTIMAL TRADE ENTRY (0.62–0.79 Фибо)
+// ═══════════════════════════════════════════════════════════════
+// При ph: OTE для SHORT (откат от high к low)
+// При pl: OTE для LONG  (откат от low к high)
+var box[] ote_boxes = array.new_box(0)
+
+if show_ote and not na(ph) and not na(sl1)
+    range_ = ph - sl1
+    ote_top    = ph - range_ * 0.62
+    ote_bottom = ph - range_ * 0.79
+    b = box.new(left=bar_index - swing_right, top=ote_top, right=bar_index + ob_extend,
+                bottom=ote_bottom, bgcolor=color.new(#9c27b0, 95),
+                border_color=color.new(#9c27b0, 70), border_width=1)
+    array.push(ote_boxes, b)
+
+if show_ote and not na(pl) and not na(sh1)
+    range_ = sh1 - pl
+    ote_bottom = pl + range_ * 0.62
+    ote_top    = pl + range_ * 0.79
+    b = box.new(left=bar_index - swing_right, top=ote_top, right=bar_index + ob_extend,
+                bottom=ote_bottom, bgcolor=color.new(#2196f3, 95),
+                border_color=color.new(#2196f3, 70), border_width=1)
+    array.push(ote_boxes, b)
+
+// Чистим старые OTE (оставляем последние 20)
+if array.size(ote_boxes) > 20
+    box.delete(array.shift(ote_boxes))
+
+// Обновляем правую границу
+if barstate.isconfirmed
+    for i = 0 to array.size(ote_boxes) - 1
+        b = array.get(ote_boxes, i)
+        box.set_right(b, bar_index + ob_extend)
+
+// ═══════════════════════════════════════════════════════════════
+//  TRIPLE VWAP
+// ═══════════════════════════════════════════════════════════════
+// Анкор: сброс VWAP. Для H1/H2/H4 — стандартный. Для D/W/M — 09:00 МСК (06:00 UTC)
+calcVwap(tf, useMsk) =>
+    is_new = if useMsk and (tf == "D" or tf == "W" or tf == "M")
+        is_6am = hour == 6 and minute == 0
+        if tf == "D"
+            is_6am and (dayofmonth != dayofmonth[1] or dayofweek != dayofweek[1])
+        else if tf == "W"
+            is_6am and dayofweek == dayofweek.monday and not (dayofweek[1] == dayofweek.monday)
+        else // M
+            is_6am and dayofmonth == 1 and dayofmonth != dayofmonth[1]
+    else
+        ta.change(time_close(tf)) != 0
+    ta.vwap(hlc3, is_new)
+
+vwap1 = calcVwap(vwap1_tf, vwap1_msk)
+vwap2 = calcVwap(vwap2_tf, vwap2_msk)
+vwap3 = calcVwap(vwap3_tf, vwap3_msk)
+
+c1 = close > vwap1 ? color.new(#00e676, 0) : color.new(#ff3b3b, 0)
+c2 = close > vwap2 ? color.new(#00e676, 0) : color.new(#ff3b3b, 0)
+c3 = close > vwap3 ? color.new(#00e676, 0) : color.new(#ff3b3b, 0)
+
+plot(vwap1, "VWAP 1", color=c1, linewidth=2, style=plot.style_line)
+plot(vwap2, "VWAP 2", color=c2, linewidth=2, style=plot.style_line)
+plot(vwap3, "VWAP 3", color=c3, linewidth=3, style=plot.style_line)
+
+// ═══════════════════════════════════════════════════════════════
+//  ВИЗУАЛИЗАЦИЯ СИГНАЛОВ
+// ═══════════════════════════════════════════════════════════════
+plotshape(longSig,  "LONG",  style=shape.triangleup,   location=location.belowbar,
+          color=color.new(#00e676, 0), size=size.large, offset=-swing_left)
+plotshape(shortSig, "SHORT", style=shape.triangledown, location=location.abovebar,
+          color=color.new(#ff3b3b, 0), size=size.large, offset=-swing_left)
+
+// ═══════════════════════════════════════════════════════════════
+//  ТАБЛИЦА СТАТИСТИКИ
+// ═══════════════════════════════════════════════════════════════
+winRate = strategy.closedtrades > 0 ? strategy.wintrades / strategy.closedtrades * 100 : 0
+
+if barstate.islast
+    var table t = table.new(position.top_right, 2, 4,
+                            bgcolor=color.new(color.black, 80),
+                            frame_color=color.gray, frame_width=1)
+    table.cell(t, 0, 0, "Сделок:",     text_color=color.white, text_size=size.small)
+    table.cell(t, 1, 0, str.tostring(strategy.closedtrades), text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 1, "Winrate:",   text_color=color.white, text_size=size.small)
+    table.cell(t, 1, 1, str.tostring(winRate, "#.##") + "%", text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 2, "Net Profit:", text_color=color.white, text_size=size.small)
+    table.cell(t, 1, 2, str.tostring(strategy.netprofit, "#.##"), text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 3, "Max DD:",    text_color=color.white, text_size=size.small)
+    table.cell(t, 1, 3, str.tostring(strategy.maxdrawdown, "#.##"), text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 4, "VWAPs:",     text_color=color.gray,  text_size=size.tiny)
+    table.cell(t, 1, 4, vwap1_tf + " / " + vwap2_tf + " / " + vwap3_tf, text_color=color.gray, text_size=size.tiny)

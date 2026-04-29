@@ -1,0 +1,260 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// SI Smart Flow RETEST STRATEGY — Бэктест с входами от ретеста
+// Логика: Пробой → Откат → Ретест → Вход
+// ══════════════════════════════════════════════════════════════════════════════
+
+// @version=6
+strategy("SI Smart Flow RETEST STRAT", 
+     shorttitle="SISmartRTStrat", 
+     overlay=true, 
+     initial_capital=100000,
+     default_qty_type=strategy.percent_of_equity,
+     default_qty_value=10,
+     commission_type=strategy.commission.percent,
+     commission_value=0.04,
+     slippage=1)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// НАСТРОЙКИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// === MTF ===
+mtfGroup = "🕐 Мульти-таймфрейм"
+htfTimeframe = input.timeframe("60", title="Высший ТФ (H1)", group=mtfGroup)
+useTrendFilter = input.bool(true, title="Фильтр по H1 тренду", group=mtfGroup)
+
+// === Уровни ===
+levelsGroup = "📊 Уровни"
+swingLookback = input.int(5, title="Swing Lookback", minval=3, maxval=10, group=levelsGroup)
+
+// === Ретесты ===
+retestGroup = "🎯 Параметры ретеста"
+retestTolerance = input.float(0.3, title="Допуск ретеста (%)", minval=0.1, maxval=1.0, step=0.1, group=retestGroup)
+maxBarsAfterBreakout = input.int(10, title="Макс. свечей для ретеста", minval=5, maxval=30, group=retestGroup)
+useStochFilter = input.bool(true, title="Фильтр стохастика", group=retestGroup)
+stochLongMax = input.int(40, title="Макс. стох для лонга", minval=20, maxval=50, group=retestGroup)
+stochShortMin = input.int(60, title="Мин. стох для шорта", minval=50, maxval=80, group=retestGroup)
+useVolumeFilter = input.bool(true, title="Фильтр объема", group=retestGroup)
+volumeThreshold = input.float(1.3, title="Порог объема", minval=1.0, maxval=3.0, step=0.1, group=retestGroup)
+
+// === Risk ===
+riskGroup = "💰 Риск"
+targetRR = input.float(2.0, title="R:R", minval=1.0, maxval=5.0, step=0.5, group=riskGroup)
+useTrailing = input.bool(true, title="Трейлинг", group=riskGroup)
+trailingATR = input.float(1.0, title="Трейлинг (ATR)", minval=0.5, maxval=3.0, step=0.1, group=riskGroup)
+
+// === Стопы ===
+stopGroup = "🛡️ Стопы"
+stopType = input.string("ATR", title="Тип стопа", options=["ATR", "Уровень+ATR", "Фикс"], group=stopGroup)
+atrLength = input.int(14, title="ATR период", minval=5, maxval=50, group=stopGroup)
+atrMult = input.float(1.0, title="ATR множитель", minval=0.5, maxval=3.0, step=0.1, group=stopGroup)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ДАННЫЕ
+// ══════════════════════════════════════════════════════════════════════════════
+
+[htfHigh, htfLow, htfClose] = request.security(syminfo.tickerid, htfTimeframe, [high, low, close])
+htfEMA50 = request.security(syminfo.tickerid, htfTimeframe, ta.ema(close, 50))
+
+bool htfBullish = htfClose > htfEMA50
+bool htfBearish = htfClose < htfEMA50
+
+float atr = ta.atr(atrLength)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// УРОВНИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+float swingHigh = ta.pivothigh(high, swingLookback, swingLookback)
+float swingLow = ta.pivotlow(low, swingLookback, swingLookback)
+
+var float[] resLevels = array.new_float()
+var float[] supLevels = array.new_float()
+var bool[] resBroken = array.new_bool()
+var bool[] supBroken = array.new_bool()
+var int[] resBreakBar = array.new_int()
+var int[] supBreakBar = array.new_int()
+var bool[] resRetested = array.new_bool()
+var bool[] supRetested = array.new_bool()
+
+if not na(swingHigh)
+    array.push(resLevels, swingHigh)
+    array.push(resBroken, false)
+    array.push(resBreakBar, na)
+    array.push(resRetested, false)
+    if array.size(resLevels) > 5
+        array.shift(resLevels)
+        array.shift(resBroken)
+        array.shift(resBreakBar)
+        array.shift(resRetested)
+
+if not na(swingLow)
+    array.push(supLevels, swingLow)
+    array.push(supBroken, false)
+    array.push(supBreakBar, na)
+    array.push(supRetested, false)
+    if array.size(supLevels) > 5
+        array.shift(supLevels)
+        array.shift(supBroken)
+        array.shift(supBreakBar)
+        array.shift(supRetested)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ПРОБОИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+int resLvlCount = array.size(resLevels)
+for i = 0 to resLvlCount > 0 ? resLvlCount - 1 : 0
+    if resLvlCount > 0 and i < resLvlCount
+        float lvl = array.get(resLevels, i)
+        bool broken = array.get(resBroken, i)
+        if not broken and close > lvl and open <= lvl
+            array.set(resBroken, i, true)
+            array.set(resBreakBar, i, bar_index)
+
+int supLvlCount = array.size(supLevels)
+for i = 0 to supLvlCount > 0 ? supLvlCount - 1 : 0
+    if supLvlCount > 0 and i < supLvlCount
+        float lvl = array.get(supLevels, i)
+        bool broken = array.get(supBroken, i)
+        if not broken and close < lvl and open >= lvl
+            array.set(supBroken, i, true)
+            array.set(supBreakBar, i, bar_index)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// РЕТЕСТЫ И СИГНАЛЫ
+// ══════════════════════════════════════════════════════════════════════════════
+
+bool longRetest = false
+bool shortRetest = false
+float longLevel = na
+float shortLevel = na
+
+// Лонг: ретест пробитой поддержки
+int supLvlCount2 = array.size(supLevels)
+for i = 0 to supLvlCount2 > 0 ? supLvlCount2 - 1 : 0
+    if supLvlCount2 > 0 and i < supLvlCount2
+        float lvl = array.get(supLevels, i)
+        bool broken = array.get(supBroken, i)
+        int bBar = array.get(supBreakBar, i)
+        bool retested = array.get(supRetested, i)
+        
+        if broken and not retested and not na(bBar)
+            int barsSince = bar_index - bBar
+            if barsSince <= maxBarsAfterBreakout
+                float tolerance = lvl * retestTolerance / 100
+                if math.abs(low - lvl) <= tolerance or math.abs(close - lvl) <= tolerance
+                    array.set(supRetested, i, true)
+                    longRetest := true
+                    longLevel := lvl
+
+// Шорт: ретест пробитого сопротивления
+int resLvlCount2 = array.size(resLevels)
+for i = 0 to resLvlCount2 > 0 ? resLvlCount2 - 1 : 0
+    if resLvlCount2 > 0 and i < resLvlCount2
+        float lvl = array.get(resLevels, i)
+        bool broken = array.get(resBroken, i)
+        int bBar = array.get(resBreakBar, i)
+        bool retested = array.get(resRetested, i)
+        
+        if broken and not retested and not na(bBar)
+            int barsSince = bar_index - bBar
+            if barsSince <= maxBarsAfterBreakout
+                float tolerance = lvl * retestTolerance / 100
+                if math.abs(high - lvl) <= tolerance or math.abs(close - lvl) <= tolerance
+                    array.set(resRetested, i, true)
+                    shortRetest := true
+                    shortLevel := lvl
+            if barsSince <= maxBarsAfterBreakout
+                float tolerance = lvl * retestTolerance / 100
+                if math.abs(high - lvl) <= tolerance or math.abs(close - lvl) <= tolerance
+                    array.set(resRetested, i, true)
+                    shortRetest := true
+                    shortLevel := lvl
+
+// Фильтры
+float k = ta.sma(ta.stoch(close, high, low, 18), 3)
+bool stochLongOK = k < stochLongMax
+bool stochShortOK = k > stochShortMin
+
+float avgVol = ta.sma(volume, 20)
+bool volOK = volume > avgVol * volumeThreshold
+
+// Условия входа
+bool longCondition = longRetest and (not useStochFilter or stochLongOK) and (not useVolumeFilter or volOK) and (not useTrendFilter or htfBullish) and not (strategy.position_size > 0)
+bool shortCondition = shortRetest and (not useStochFilter or stochShortOK) and (not useVolumeFilter or volOK) and (not useTrendFilter or htfBearish) and not (strategy.position_size < 0)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СТОПЫ И ТЕЙКИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+float longStop = switch stopType
+    "ATR" => close - atr * atrMult
+    "Уровень+ATR" => longLevel - atr * 0.5
+    "Фикс" => close * 0.99
+    => close - atr
+
+float shortStop = switch stopType
+    "ATR" => close + atr * atrMult
+    "Уровень+ATR" => shortLevel + atr * 0.5
+    "Фикс" => close * 1.01
+    => close + atr
+
+float longRisk = close - longStop
+float longTarget = close + longRisk * targetRR
+float shortRisk = shortStop - close
+float shortTarget = close - shortRisk * targetRR
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ВХОДЫ
+// ══════════════════════════════════════════════════════════════════════════════
+
+if longCondition
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long SL/TP", "Long", stop=longStop, limit=longTarget)
+    if useTrailing
+        strategy.exit("Long Trail", "Long", trail_offset=atr*trailingATR, trail_points=atr*trailingATR)
+
+if shortCondition
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Short SL/TP", "Short", stop=shortStop, limit=shortTarget)
+    if useTrailing
+        strategy.exit("Short Trail", "Short", trail_offset=atr*trailingATR, trail_points=atr*trailingATR)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ВИЗУАЛИЗАЦИЯ
+// ══════════════════════════════════════════════════════════════════════════════
+
+plotshape(not na(swingHigh), title="Swing High", style=shape.triangledown, color=color.red, size=size.small)
+plotshape(not na(swingLow), title="Swing Low", style=shape.triangleup, color=color.green, size=size.small)
+plotshape(longCondition, title="LONG", style=shape.labelup, color=color.green, size=size.normal, text="BUY", textcolor=color.white)
+plotshape(shortCondition, title="SHORT", style=shape.labeldown, color=color.red, size=size.normal, text="SELL", textcolor=color.white)
+
+plot(strategy.position_size > 0 ? longStop : na, "SL Long", color=color.red, style=plot.style_linebr)
+plot(strategy.position_size > 0 ? longTarget : na, "TP Long", color=color.green, style=plot.style_linebr)
+plot(strategy.position_size < 0 ? shortStop : na, "SL Short", color=color.green, style=plot.style_linebr)
+plot(strategy.position_size < 0 ? shortTarget : na, "TP Short", color=color.red, style=plot.style_linebr)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ТАБЛИЦА
+// ══════════════════════════════════════════════════════════════════════════════
+
+var table t = table.new(position.top_right, 2, 8, bgcolor=color.new(color.black, 10))
+if barstate.islast
+    table.cell(t, 0, 0, "RETEST STRAT", text_color=color.white)
+    table.cell(t, 0, 1, "H1 Trend:", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 1, htfBullish ? "UP" : htfBearish ? "DOWN" : "NEUTRAL", text_color=htfBullish ? color.green : htfBearish ? color.red : color.gray, text_size=size.small)
+    table.cell(t, 0, 2, "Stoch:", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 2, str.tostring(k, "#.##"), text_size=size.small)
+    table.cell(t, 0, 3, "Retest Long:", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 3, longRetest ? "YES" : "NO", text_color=longRetest ? color.green : color.gray, text_size=size.small)
+    table.cell(t, 0, 4, "Retest Short:", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 4, shortRetest ? "YES" : "NO", text_color=shortRetest ? color.red : color.gray, text_size=size.small)
+    table.cell(t, 0, 5, "Trades:", text_color=color.gray, text_size=size.small)
+    table.cell(t, 1, 5, str.tostring(strategy.closedtrades), text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 6, "Win Rate:", text_color=color.gray, text_size=size.small)
+    string wr = strategy.closedtrades > 0 ? str.tostring(strategy.wintrades / strategy.closedtrades * 100, "#.##") + "%" : "N/A"
+    table.cell(t, 1, 6, wr, text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 7, "P&L:", text_color=color.gray, text_size=size.small)
+    color plColor = strategy.openprofit > 0 ? color.green : strategy.openprofit < 0 ? color.red : color.gray
+    table.cell(t, 1, 7, str.tostring(strategy.openprofit, "#.##"), text_color=plColor, text_size=size.small)

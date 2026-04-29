@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Monkey Editor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+    background: #0f0f13;
+    color: #a5b3ce;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: #16161e;
+    border-bottom: 1px solid #2a2a35;
+    flex-shrink: 0;
+  }
+  .toolbar h2 {
+    font-size: 14px;
+    color: #ff6b35;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  .toolbar .meta {
+    font-size: 11px;
+    color: #666;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  .toolbar .spacer { flex: 1; }
+  .toolbar button {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  .btn-save { background: #ff6b35; color: #fff; }
+  .btn-save:hover { background: #e55a2b; }
+  .btn-save.new-ver { background: #8b5cf6; }
+  .btn-save.new-ver:hover { background: #7c4ddb; }
+  .btn-secondary { background: #2a2a35; color: #aaa; }
+  .btn-secondary:hover { background: #3a3a45; color: #fff; }
+  .editor-wrap {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+  }
+  .line-numbers {
+    width: 50px;
+    background: #0a0a10;
+    border-right: 1px solid #2a2a35;
+    padding: 12px 8px;
+    text-align: right;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #555;
+    overflow: hidden;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  textarea {
+    flex: 1;
+    background: #0f0f13;
+    border: none;
+    padding: 12px 14px;
+    color: #a5b3ce;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    tab-size: 2;
+    white-space: pre;
+    overflow: auto;
+  }
+  .meta-panel {
+    width: 260px;
+    background: #16161e;
+    border-left: 1px solid #2a2a35;
+    padding: 14px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .meta-panel h3 {
+    font-size: 12px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+  .meta-panel input {
+    width: 100%;
+    background: #0f0f13;
+    border: 1px solid #2a2a35;
+    border-radius: 6px;
+    padding: 8px;
+    color: #e2e2e8;
+    font-size: 12px;
+    margin-bottom: 10px;
+    font-family: inherit;
+  }
+  .meta-panel input:focus { outline: none; border-color: #ff6b35; }
+  .meta-panel .match-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #1a2a1a;
+    color: #4ade80;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    margin: 2px;
+  }
+  .meta-panel .match-tag .del {
+    cursor: pointer;
+    color: #f87171;
+    font-weight: bold;
+  }
+  .meta-panel .add-match {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .meta-panel .add-match input { flex: 1; margin-bottom: 0; }
+  .meta-panel .add-match button {
+    padding: 6px 10px;
+    background: #2a2a35;
+    border: none;
+    border-radius: 6px;
+    color: #aaa;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ff6b35;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-size: 13px;
+    z-index: 9999;
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h2>✏️ Editor</h2>
+  <span class="meta" id="scriptMeta">Loading...</span>
+  <div class="spacer"></div>
+  <button class="btn-secondary" data-action="formatCode">🔧 Format</button>
+  <button class="btn-save" data-action="saveScript">💾 Save</button>
+  <button class="btn-save new-ver" data-action="saveNewVersion">📝 Save as Version</button>
+  <button class="btn-secondary" data-action="testScript">▶️ Test</button>
+</div>
+
+<div class="editor-wrap">
+  <div class="line-numbers" id="lineNumbers">1</div>
+  <textarea id="codeEditor" spellcheck="false"></textarea>
+  
+  <div class="meta-panel">
+    <h3>Metadata</h3>
+    <label style="font-size:11px;color:#666;">Name</label>
+    <input type="text" id="editName" placeholder="Script name">
+    
+    <label style="font-size:11px;color:#666;">Description</label>
+    <input type="text" id="editDesc" placeholder="Description">
+    
+    <label style="font-size:11px;color:#666;">@match URLs</label>
+    <div id="editMatches"></div>
+    <div class="add-match">
+      <input type="text" id="newMatch" placeholder="*://example.com/*">
+      <button data-action="addMatch">+</button>
+    </div>
+    
+    <label style="font-size:11px;color:#666;margin-top:10px;display:block;">@grant</label>
+    <input type="text" id="editGrant" placeholder="none">
+  </div>
+</div>
+
+<script src="editor.js"></script>
+</body>
+</html>

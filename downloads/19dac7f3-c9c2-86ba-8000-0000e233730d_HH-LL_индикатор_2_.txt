@@ -1,0 +1,142 @@
+//@version=6
+indicator("Structure Signal", shorttitle="Structure Signal", overlay=true, max_lines_count=500, max_labels_count=200, max_boxes_count=100)
+
+// ═══════════════════════════════════════════════════════════════
+//  ЛОНГ  → LL + LL + HL  → 1 стрелка вверх
+//  ШОРТ  → HH + HH + LH  → 1 стрелка вниз
+//  Лучи свингов: исчезают когда тело свечи пересекает уровень
+// ═══════════════════════════════════════════════════════════════
+
+// ─── НАСТРОЙКИ ────────────────────────────────────────────────
+swing_len = input.int (8,    "Swing Lookback (бар)", minval=3, maxval=50)
+show_rays = input.bool(true, "Лучи уровней")
+show_stop = input.bool(true, "Зона стопа")
+col_bull  = input.color(color.new(#00e676, 0),  "Лонг")
+col_bear  = input.color(color.new(#ff3b3b, 0),  "Шорт")
+col_ray   = input.color(color.new(#ffd700, 55), "Лучи свингов")
+col_stop  = input.color(color.new(#888888, 85), "Стоп зона")
+
+// ─── СВИНГИ ───────────────────────────────────────────────────
+ph = ta.pivothigh(high, swing_len, swing_len)
+pl = ta.pivotlow (low,  swing_len, swing_len)
+
+var float sh1 = na
+var float sh2 = na
+var float sh3 = na
+var int   shi1 = na
+
+var float sl1 = na
+var float sl2 = na
+var float sl3 = na
+var int   sli1 = na
+
+var bool longFired  = false
+var bool shortFired = false
+
+if not na(ph)
+    sh3  := sh2
+    sh2  := sh1
+    sh1  := ph
+    shi1 := bar_index - swing_len
+    shortFired := false
+
+if not na(pl)
+    sl3  := sl2
+    sl2  := sl1
+    sl1  := pl
+    sli1 := bar_index - swing_len
+    longFired := false
+
+// ─── ХРАНИЛИЩЕ АКТИВНЫХ ЛУЧЕЙ ─────────────────────────────────
+// Максимум 20 активных лучей одновременно
+var line[]  ray_lines  = array.new<line>()
+var float[] ray_levels = array.new<float>()
+var label[] ray_labels = array.new<label>()
+
+// Добавляем новый луч при появлении свинга
+if show_rays and not na(ph)
+    isHH  = not na(sh2) and ph > sh2
+    lbl   = isHH ? "HH" : "LH"
+    lcol  = isHH ? col_bull : col_bear
+    new_line  = line.new(bar_index - swing_len, ph, bar_index, ph, color=col_ray, width=1, style=line.style_dashed)
+    new_label = label.new(bar_index - swing_len, ph, text=lbl, style=label.style_label_down, color=color.new(lcol, 30), textcolor=color.white, size=size.small)
+    array.push(ray_lines,  new_line)
+    array.push(ray_levels, ph)
+    array.push(ray_labels, new_label)
+
+if show_rays and not na(pl)
+    isLL  = not na(sl2) and pl < sl2
+    lbl   = isLL ? "LL" : "HL"
+    lcol  = isLL ? col_bear : col_bull
+    new_line  = line.new(bar_index - swing_len, pl, bar_index, pl, color=col_ray, width=1, style=line.style_dashed)
+    new_label = label.new(bar_index - swing_len, pl, text=lbl, style=label.style_label_up, color=color.new(lcol, 30), textcolor=color.white, size=size.small)
+    array.push(ray_lines,  new_line)
+    array.push(ray_levels, pl)
+    array.push(ray_labels, new_label)
+
+// Каждый бар: обновляем правую границу лучей или удаляем если пересечены телом
+if show_rays and array.size(ray_lines) > 0
+    i = 0
+    while i < array.size(ray_lines)
+        lvl     = array.get(ray_levels, i)
+        ray_ln  = array.get(ray_lines,  i)
+        ray_lb  = array.get(ray_labels, i)
+
+        // Тело пересекает уровень: close и open по разные стороны ИЛИ тело полностью поглощает
+        body_top    = math.max(open, close)
+        body_bot    = math.min(open, close)
+        isCrossed   = body_bot < lvl and body_top > lvl
+
+        if isCrossed
+            // Удаляем луч и метку
+            line.delete(ray_ln)
+            label.delete(ray_lb)
+            array.remove(ray_lines,  i)
+            array.remove(ray_levels, i)
+            array.remove(ray_labels, i)
+            // i не увеличиваем — следующий элемент сдвинулся на это место
+        else
+            // Продлеваем луч до текущего бара
+            line.set_x2(ray_ln, bar_index)
+            i += 1
+
+// ─── УСЛОВИЯ СИГНАЛОВ ─────────────────────────────────────────
+longCond = not na(pl) and not na(sl1) and not na(sl2) and not na(sl3) and not longFired
+longStr  = sl3 > sl2 and sl1 > sl2
+longSig  = longCond and longStr
+
+shortCond = not na(ph) and not na(sh1) and not na(sh2) and not na(sh3) and not shortFired
+shortStr  = sh3 < sh2 and sh1 < sh2
+shortSig  = shortCond and shortStr
+
+if longSig
+    longFired := true
+
+if shortSig
+    shortFired := true
+
+// ─── ВИЗУАЛИЗАЦИЯ ЛОНГ ────────────────────────────────────────
+if longSig
+    atr = ta.atr(14)
+    if show_stop
+        box.new(left=sli1, top=sl1, right=bar_index + 10, bottom=sl2, border_color=color.new(col_bear, 60), border_width=1, bgcolor=col_stop)
+        label.new(bar_index, sl2, text="SL", style=label.style_label_right, color=color.new(col_bear, 20), textcolor=color.white, size=size.tiny)
+    label.new(bar_index - swing_len, sl1 - atr * 0.5, text="▲ LONG", style=label.style_label_up, color=color.new(col_bull, 5), textcolor=color.black, size=size.small)
+    alert("LONG: LL+LL+HL → вход на следующей свече", alert.freq_once_per_bar)
+
+// ─── ВИЗУАЛИЗАЦИЯ ШОРТ ────────────────────────────────────────
+if shortSig
+    atr = ta.atr(14)
+    if show_stop
+        box.new(left=shi1, top=sh2, right=bar_index + 10, bottom=sh1, border_color=color.new(col_bull, 60), border_width=1, bgcolor=col_stop)
+        label.new(bar_index, sh2, text="SL", style=label.style_label_right, color=color.new(col_bull, 20), textcolor=color.white, size=size.tiny)
+    label.new(bar_index - swing_len, sh1 + atr * 0.5, text="▼ SHORT", style=label.style_label_down, color=color.new(col_bear, 5), textcolor=color.white, size=size.small)
+    alert("SHORT: HH+HH+LH → вход на следующей свече", alert.freq_once_per_bar)
+
+// ─── СТРЕЛКИ ──────────────────────────────────────────────────
+plotshape(longSig,  "LONG",  style=shape.triangleup,   location=location.belowbar, color=col_bull, size=size.large, offset=-swing_len)
+plotshape(shortSig, "SHORT", style=shape.triangledown, location=location.abovebar, color=col_bear, size=size.large, offset=-swing_len)
+
+// ─── ALERTCONDITIONS ──────────────────────────────────────────
+alertcondition(longSig,  "LONG  ▲", "Structure Signal LONG  — LL+LL+HL")
+alertcondition(shortSig, "SHORT ▼", "Structure Signal SHORT — HH+HH+LH")

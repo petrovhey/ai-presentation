@@ -1,0 +1,190 @@
+//@version=6
+indicator("Structure Signal Clean", shorttitle="Struct Sig", overlay=true, max_lines_count=500, max_labels_count=200, max_boxes_count=100)
+
+// ═══════════════════════════════════════════════════════════════
+//  ЧИСТЫЙ ИНДИКАТОР: свинг-сигналы + объемные бары + 3 VWAP
+//  + Линии свингов (HH/LL/LH/HL) + Зона стопа за предыдущий свинг
+// ═══════════════════════════════════════════════════════════════
+
+// ─── НАСТРОЙКИ СВИНГОВ ──────────────────────────────────────
+swing_left  = input.int (8,  "Swing Left",  minval=1, maxval=50)
+swing_right = input.int (8,  "Swing Right", minval=1, maxval=50)
+col_bull    = input.color(color.new(#00e676, 0), "Лонг")
+col_bear    = input.color(color.new(#ff3b3b, 0), "Шорт")
+
+// ─── НАСТРОЙКИ СТОП-ЗОНЫ ───────────────────────────────────
+show_stop   = input.bool(true, "Показывать зону стопа", group="Стоп-зона")
+col_stop    = input.color(color.new(#ff5252, 70), "Цвет зоны стопа", group="Стоп-зона")
+
+// ─── НАСТРОЙКИ ЛУЧЕЙ ───────────────────────────────────────
+col_ray     = input.color(color.new(#ffd700, 55), "Цвет лучей свингов", group="Лучи свингов")
+
+// ─── НАСТРОЙКИ ОБЪЕМА ───────────────────────────────────────
+show_vol_bars = input.bool(true, "Объемные бары (> prev 2)", group="Объем")
+vol_col_bull  = input.color(color.new(#00e676, 50), "Цвет бычьего объема", group="Объем")
+vol_col_bear  = input.color(color.new(#ff3b3b, 50), "Цвет медвежьего объема", group="Объем")
+
+// ─── НАСТРОЙКИ VWAP 1 ──────────────────────────────────────
+vwap1_tf    = input.string("60",  "VWAP 1 TF", options=["15","30","60","120","240","D","W","M"], group="VWAP 1")
+vwap1_msk   = input.bool(false, "09:00 МСК (иначе UTC 00:00)", group="VWAP 1")
+vwap1_col   = input.color(color.new(#00e676, 0), "Цвет", group="VWAP 1")
+vwap1_width = input.int(2, "Толщина", minval=1, maxval=4, group="VWAP 1")
+vwap1_style = input.string("Line", "Тип", options=["Line","Stepline","Circles"], group="VWAP 1")
+
+// ─── НАСТРОЙКИ VWAP 2 ──────────────────────────────────────
+vwap2_tf    = input.string("240", "VWAP 2 TF", options=["15","30","60","120","240","D","W","M"], group="VWAP 2")
+vwap2_msk   = input.bool(false, "09:00 МСК", group="VWAP 2")
+vwap2_col   = input.color(color.new(#00e676, 0), "Цвет", group="VWAP 2")
+vwap2_width = input.int(2, "Толщина", minval=1, maxval=4, group="VWAP 2")
+vwap2_style = input.string("Line", "Тип", options=["Line","Stepline","Circles"], group="VWAP 2")
+
+// ─── НАСТРОЙКИ VWAP 3 ──────────────────────────────────────
+vwap3_tf    = input.string("D",   "VWAP 3 TF", options=["15","30","60","120","240","D","W","M"], group="VWAP 3")
+vwap3_msk   = input.bool(true,  "09:00 МСК", group="VWAP 3")
+vwap3_col   = input.color(color.new(#00e676, 0), "Цвет", group="VWAP 3")
+vwap3_width = input.int(3, "Толщина", minval=1, maxval=4, group="VWAP 3")
+vwap3_style = input.string("Line", "Тип", options=["Line","Stepline","Circles"], group="VWAP 3")
+
+// ═══════════════════════════════════════════════════════════════
+//  СВИНГИ И СИГНАЛЫ
+// ═══════════════════════════════════════════════════════════════
+ph = ta.pivothigh(high, swing_left, swing_right)
+pl = ta.pivotlow (low,  swing_left, swing_right)
+
+var float sh1 = na, var float sh2 = na, var float sh3 = na
+var float sl1 = na, var float sl2 = na, var float sl3 = na
+
+var bool longFired  = false
+var bool shortFired = false
+
+if not na(ph)
+    sh3 := sh2, sh2 := sh1, sh1 := ph
+    shortFired := false
+
+if not na(pl)
+    sl3 := sl2, sl2 := sl1, sl1 := pl
+    longFired := false
+
+longCond  = not na(pl) and not na(sl1) and not na(sl2) and not na(sl3) and not longFired
+longStr   = sl3 > sl2 and sl1 > sl2
+longSig   = longCond and longStr
+
+shortCond = not na(ph) and not na(sh1) and not na(sh2) and not na(sh3) and not shortFired
+shortStr  = sh3 < sh2 and sh1 < sh2
+shortSig  = shortCond and shortStr
+
+if longSig
+    longFired := true
+if shortSig
+    shortFired := true
+
+// ═══════════════════════════════════════════════════════════════
+//  ЛУЧИ СВИНГОВ (HH / LL / LH / HL)
+//  ph/pl появляются со смещением swing_right
+// ═══════════════════════════════════════════════════════════════
+var line[]  ray_lines  = array.new<line>()
+var float[] ray_levels = array.new<float>()
+var label[] ray_labels = array.new<label>()
+
+if not na(ph)
+    isHH = not na(sh2) and ph > sh2
+    lbl  = isHH ? "HH" : "LH"
+    lcol = isHH ? col_bull : col_bear
+    array.push(ray_lines,  line.new(bar_index - swing_right, ph, bar_index, ph, color=col_ray, width=1, style=line.style_dashed))
+    array.push(ray_levels, ph)
+    array.push(ray_labels, label.new(bar_index - swing_right, ph, text=lbl, style=label.style_label_down, color=color.new(lcol, 30), textcolor=color.white, size=size.small))
+
+if not na(pl)
+    isLL = not na(sl2) and pl < sl2
+    lbl  = isLL ? "LL" : "HL"
+    lcol = isLL ? col_bear : col_bull
+    array.push(ray_lines,  line.new(bar_index - swing_right, pl, bar_index, pl, color=col_ray, width=1, style=line.style_dashed))
+    array.push(ray_levels, pl)
+    array.push(ray_labels, label.new(bar_index - swing_right, pl, text=lbl, style=label.style_label_up, color=color.new(lcol, 30), textcolor=color.white, size=size.small))
+
+if array.size(ray_lines) > 0
+    i = 0
+    while i < array.size(ray_lines)
+        lvl    = array.get(ray_levels, i)
+        ray_ln = array.get(ray_lines,  i)
+        ray_lb = array.get(ray_labels, i)
+        body_top = math.max(open, close)
+        body_bot = math.min(open, close)
+        if body_bot < lvl and body_top > lvl
+            line.delete(ray_ln), label.delete(ray_lb)
+            array.remove(ray_lines,  i)
+            array.remove(ray_levels, i)
+            array.remove(ray_labels, i)
+        else
+            line.set_x2(ray_ln, bar_index)
+            i += 1
+
+// ═══════════════════════════════════════════════════════════════
+//  ЗОНА СТОПА — за предыдущий свинг (или min/low свечи)
+// ═══════════════════════════════════════════════════════════════
+if show_stop and longSig
+    entry   = close
+    stopLvl = math.min(low, nz(sl1, low))
+    box.new(bar_index - swing_right, stopLvl, bar_index + 5, entry,
+         bgcolor=col_stop, border_color=color.new(#ff5252, 50), border_width=1)
+    label.new(bar_index - swing_right, stopLvl, "SL " + str.tostring(stopLvl, "#.##"),
+         style=label.style_label_up, color=color.new(#ff5252, 30), textcolor=color.white, size=size.small)
+
+if show_stop and shortSig
+    entry   = close
+    stopLvl = math.max(high, nz(sh1, high))
+    box.new(bar_index - swing_right, entry, bar_index + 5, stopLvl,
+         bgcolor=col_stop, border_color=color.new(#ff5252, 50), border_width=1)
+    label.new(bar_index - swing_right, stopLvl, "SL " + str.tostring(stopLvl, "#.##"),
+         style=label.style_label_down, color=color.new(#ff5252, 30), textcolor=color.white, size=size.small)
+
+// ═══════════════════════════════════════════════════════════════
+//  ОБЪЕМНЫЕ БАРЫ
+// ═══════════════════════════════════════════════════════════════
+vol_spike = volume > volume[1] and volume > volume[2]
+bar_color = if show_vol_bars and vol_spike
+    close >= open ? vol_col_bull : vol_col_bear
+else
+    na
+barcolor(bar_color)
+
+// ═══════════════════════════════════════════════════════════════
+//  TRIPLE VWAP
+// ═══════════════════════════════════════════════════════════════
+calcVwap(tf, useMsk) =>
+    is_new = if useMsk and (tf == "D" or tf == "W" or tf == "M")
+        is_6am = hour == 6 and minute == 0
+        if tf == "D"
+            is_6am and (dayofmonth != dayofmonth[1] or dayofweek != dayofweek[1])
+        else if tf == "W"
+            is_6am and dayofweek == dayofweek.monday and not (dayofweek[1] == dayofweek.monday)
+        else // M
+            is_6am and dayofmonth == 1 and dayofmonth != dayofmonth[1]
+    else
+        ta.change(time_close(tf)) != 0
+    ta.vwap(hlc3, is_new)
+
+vwap1 = calcVwap(vwap1_tf, vwap1_msk)
+vwap2 = calcVwap(vwap2_tf, vwap2_msk)
+vwap3 = calcVwap(vwap3_tf, vwap3_msk)
+
+plotStyle(styleStr) =>
+    styleStr == "Stepline" ? plot.style_stepline : styleStr == "Circles" ? plot.style_circles : plot.style_line
+
+plot(vwap1, "VWAP 1", color=vwap1_col, linewidth=vwap1_width, style=plotStyle(vwap1_style))
+plot(vwap2, "VWAP 2", color=vwap2_col, linewidth=vwap2_width, style=plotStyle(vwap2_style))
+plot(vwap3, "VWAP 3", color=vwap3_col, linewidth=vwap3_width, style=plotStyle(vwap3_style))
+
+// ═══════════════════════════════════════════════════════════════
+//  СТРЕЛКИ ВХОДА
+// ═══════════════════════════════════════════════════════════════
+plotshape(longSig,  "LONG",  style=shape.triangleup,   location=location.belowbar,
+          color=col_bull, size=size.small, offset=-swing_right)
+plotshape(shortSig, "SHORT", style=shape.triangledown, location=location.abovebar,
+          color=col_bear, size=size.small, offset=-swing_right)
+
+// ═══════════════════════════════════════════════════════════════
+//  АЛЕРТЫ
+// ═══════════════════════════════════════════════════════════════
+alertcondition(longSig,  "Long Signal",  "LL+LL+HL → LONG")
+alertcondition(shortSig, "Short Signal", "HH+HH+LH → SHORT")

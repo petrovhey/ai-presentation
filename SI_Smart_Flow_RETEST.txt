@@ -1,0 +1,369 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// SI Smart Flow RETEST — Только входы от ретеста пробитых уровней
+// Логика: Пробой → Откат → Ретест → Вход
+// ══════════════════════════════════════════════════════════════════════════════
+
+// @version=6
+indicator("SI Smart Flow RETEST", 
+     shorttitle="SISmartRT", 
+     overlay=true, 
+     max_lines_count=500, 
+     max_boxes_count=500, 
+     max_labels_count=500)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// НАСТРОЙКИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// === Мульти-таймфрейм ===
+mtfGroup = "🕐 Мульти-таймфрейм"
+htfTimeframe = input.timeframe("60", title="Высший ТФ (H1 структура)", group=mtfGroup)
+useTrendFilter = input.bool(true, title="Фильтр по H1 тренду", group=mtfGroup)
+
+// === Уровни и Ретесты ===
+levelsGroup = "📊 Уровни и Ретесты"
+swingLookback = input.int(5, title="Swing Lookback", minval=3, maxval=10, group=levelsGroup)
+showLevels = input.bool(true, title="Показывать уровни", group=levelsGroup)
+showBreakouts = input.bool(true, title="Показывать пробои", group=levelsGroup)
+showRetests = input.bool(true, title="Показывать ретесты", group=levelsGroup)
+
+// === Параметры входа ===
+entryGroup = "🎯 Параметры входа"
+retestTolerance = input.float(0.3, title="Допуск ретеста (%)", minval=0.1, maxval=1.0, step=0.1, group=entryGroup)
+maxBarsAfterBreakout = input.int(10, title="Макс. свечей после пробоя для ретеста", minval=5, maxval=30, group=entryGroup)
+useStochFilter = input.bool(true, title="Фильтр стохастика (перепродан/перекуплен)", group=entryGroup)
+useVolumeFilter = input.bool(true, title="Фильтр объема", group=entryGroup)
+volumeThreshold = input.float(1.3, title="Порог объема", minval=1.0, maxval=3.0, step=0.1, group=entryGroup)
+
+// === Risk Management ===
+riskGroup = "🛡️ Риск-менеджмент"
+defaultRR = input.float(2.0, title="Целевой R:R", minval=1.0, maxval=5.0, step=0.5, group=riskGroup)
+useATRStop = input.bool(true, title="ATR для стопа", group=riskGroup)
+atrLength = input.int(14, title="ATR период", minval=5, maxval=50, group=riskGroup)
+atrMultiplier = input.float(1.0, title="ATR множитель", minval=0.5, maxval=3.0, step=0.1, group=riskGroup)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MTF ДАННЫЕ
+// ══════════════════════════════════════════════════════════════════════════════
+
+[htfHigh, htfLow, htfClose] = request.security(syminfo.tickerid, htfTimeframe, [high, low, close])
+htfEMA50 = request.security(syminfo.tickerid, htfTimeframe, ta.ema(close, 50))
+
+bool htfBullish = htfClose > htfEMA50
+bool htfBearish = htfClose < htfEMA50
+
+float atr = ta.atr(atrLength)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ОПРЕДЕЛЕНИЕ УРОВНЕЙ (Свинги)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Свинги
+float swingHigh = ta.pivothigh(high, swingLookback, swingLookback)
+float swingLow = ta.pivotlow(low, swingLookback, swingLookback)
+
+// Храним активные уровни
+var float[] resistanceLevels = array.new_float()
+var float[] supportLevels = array.new_float()
+var int[] resistanceBars = array.new_int()
+var int[] supportBars = array.new_int()
+var bool[] resistanceBroken = array.new_bool()
+var bool[] supportBroken = array.new_bool()
+var int[] resistanceBreakoutBar = array.new_int()
+var int[] supportBreakoutBar = array.new_int()
+var bool[] resistanceRetested = array.new_bool()
+var bool[] supportRetested = array.new_bool()
+
+// Добавляем новые уровни
+if not na(swingHigh)
+    array.push(resistanceLevels, swingHigh)
+    array.push(resistanceBars, bar_index[swingLookback])
+    array.push(resistanceBroken, false)
+    array.push(resistanceBreakoutBar, na)
+    array.push(resistanceRetested, false)
+    // Чистим старые
+    if array.size(resistanceLevels) > 5
+        array.shift(resistanceLevels)
+        array.shift(resistanceBars)
+        array.shift(resistanceBroken)
+        array.shift(resistanceBreakoutBar)
+        array.shift(resistanceRetested)
+
+if not na(swingLow)
+    array.push(supportLevels, swingLow)
+    array.push(supportBars, bar_index[swingLookback])
+    array.push(supportBroken, false)
+    array.push(supportBreakoutBar, na)
+    array.push(supportRetested, false)
+    if array.size(supportLevels) > 5
+        array.shift(supportLevels)
+        array.shift(supportBars)
+        array.shift(supportBroken)
+        array.shift(supportBreakoutBar)
+        array.shift(supportRetested)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ОТСЛЕЖИВАНИЕ ПРОБОЕВ И РЕТЕСТОВ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Проверяем пробои сопротивления (цена закрылась выше уровня)
+int resSize = array.size(resistanceLevels)
+for i = 0 to resSize > 0 ? resSize - 1 : 0
+    if resSize > 0 and i < resSize
+        float level = array.get(resistanceLevels, i)
+        bool broken = array.get(resistanceBroken, i)
+        int breakBar = array.get(resistanceBreakoutBar, i)
+        
+        if not broken and close > level and open <= level  // Пробой вверх
+            array.set(resistanceBroken, i, true)
+            array.set(resistanceBreakoutBar, i, bar_index)
+            if showBreakouts
+                label.new(bar_index, level, "Пробой ↑", color=color.green, textcolor=color.white, style=label.style_label_up, size=size.small)
+
+// Проверяем пробои поддержки
+for i = 0 to array.size(supportLevels) - 1
+    if i < array.size(supportLevels)
+        float level = array.get(supportLevels, i)
+        bool broken = array.get(supportBroken, i)
+        
+        if not broken and close < level and open >= level  // Пробой вниз
+            array.set(supportBroken, i, true)
+            array.set(supportBreakoutBar, i, bar_index)
+            if showBreakouts
+                label.new(bar_index, level, "Пробой ↓", color=color.red, textcolor=color.white, style=label.style_label_down, size=size.small)
+
+// Проверяем ретесты
+bool longRetest = false
+bool shortRetest = false
+float longEntryLevel = na
+float shortEntryLevel = na
+
+// Ретест сопротивления (для шорта) - цена вернулась к пробитому уровню
+for i = 0 to array.size(resistanceLevels) - 1
+    if i < array.size(resistanceLevels)
+        float level = array.get(resistanceLevels, i)
+        bool broken = array.get(resistanceBroken, i)
+        int breakBar = array.get(resistanceBreakoutBar, i)
+        bool retested = array.get(resistanceRetested, i)
+        
+        if broken and not retested and not na(breakBar)
+            int barsSince = bar_index - breakBar
+            if barsSince <= maxBarsAfterBreakout
+                // Цена вернулась к уровню (в допуске retestTolerance %)
+                float tolerance = level * retestTolerance / 100
+                if math.abs(high - level) <= tolerance or math.abs(close - level) <= tolerance
+                    if showRetests
+                        label.new(bar_index, level, "Ретест", color=color.orange, textcolor=color.white, style=label.style_label_down, size=size.tiny)
+                    array.set(resistanceRetested, i, true)
+                    shortRetest := true
+                    shortEntryLevel := level
+
+// Ретест поддержки (для лонга)
+for i = 0 to array.size(supportLevels) - 1
+    if i < array.size(supportLevels)
+        float level = array.get(supportLevels, i)
+        bool broken = array.get(supportBroken, i)
+        int breakBar = array.get(supportBreakoutBar, i)
+        bool retested = array.get(supportRetested, i)
+        
+        if broken and not retested and not na(breakBar)
+            int barsSince = bar_index - breakBar
+            if barsSince <= maxBarsAfterBreakout
+                float tolerance = level * retestTolerance / 100
+                if math.abs(low - level) <= tolerance or math.abs(close - level) <= tolerance
+                    if showRetests
+                        label.new(bar_index, level, "Ретест", color=color.lime, textcolor=color.black, style=label.style_label_up, size=size.tiny)
+                    array.set(supportRetested, i, true)
+                    longRetest := true
+                    longEntryLevel := level
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СТОХАСТИК ДЛЯ ФИЛЬТРАЦИИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+float k = ta.sma(ta.stoch(close, high, low, 18), 3)
+
+bool stochLong = k < 40  // Перепродан для лонга
+bool stochShort = k > 60  // Перекуплен для шорта
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ОБЪЕМ ДЛЯ ФИЛЬТРАЦИИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+float avgVolume = ta.sma(volume, 20)
+bool highVolume = volume > avgVolume * volumeThreshold
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СИГНАЛЫ ВХОДА (ТОЛЬКО ОТ РЕТЕСТА)
+// ══════════════════════════════════════════════════════════════════════════════
+
+bool longCondition = false
+bool shortCondition = false
+
+// Лонг: Ретест поддержки + стох перепродан + объем + тренд
+if longRetest
+    bool trendOK = not useTrendFilter or htfBullish
+    bool stochOK = not useStochFilter or stochLong
+    bool volOK = not useVolumeFilter or highVolume
+    
+    if trendOK and stochOK and volOK
+        longCondition := true
+
+// Шорт: Ретест сопротивления + стох перекуплен + объем + тренд
+if shortRetest
+    bool trendOK = not useTrendFilter or htfBearish
+    bool stochOK = not useStochFilter or stochShort
+    bool volOK = not useVolumeFilter or highVolume
+    
+    if trendOK and stochOK and volOK
+        shortCondition := true
+
+// Убираем повторные сигналы
+bool longSignal = longCondition and not longCondition[1]
+bool shortSignal = shortCondition and not shortCondition[1]
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ВИЗУАЛИЗАЦИЯ УРОВНЕЙ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Рисуем активные уровни
+var line[] resLines = array.new_line()
+var line[] supLines = array.new_line()
+
+if showLevels
+    // Очищаем старые линии
+    int resLinesSize = array.size(resLines)
+    for i = 0 to resLinesSize > 0 ? resLinesSize - 1 : 0
+        if resLinesSize > 0 and i < resLinesSize
+            line.delete(array.get(resLines, i))
+    int supLinesSize = array.size(supLines)
+    for i = 0 to supLinesSize > 0 ? supLinesSize - 1 : 0
+        if supLinesSize > 0 and i < supLinesSize
+            line.delete(array.get(supLines, i))
+    
+    array.clear(resLines)
+    array.clear(supLines)
+    
+    // Рисуем новые
+    int resLvlSize = array.size(resistanceLevels)
+    for i = 0 to resLvlSize > 0 ? resLvlSize - 1 : 0
+        if resLvlSize > 0 and i < resLvlSize
+            float level = array.get(resistanceLevels, i)
+            bool broken = array.get(resistanceBroken, i)
+            color lineColor = broken ? color.new(color.gray, 50) : color.new(color.red, 30)
+            int startBar = array.get(resistanceBars, i)
+            line l = line.new(startBar, level, bar_index + 20, level, color=lineColor, style=broken ? line.style_dashed : line.style_solid, width=2)
+            array.push(resLines, l)
+    
+    int supLvlSize = array.size(supportLevels)
+    for i = 0 to supLvlSize > 0 ? supLvlSize - 1 : 0
+        if supLvlSize > 0 and i < supLvlSize
+            float level = array.get(supportLevels, i)
+            bool broken = array.get(supportBroken, i)
+            color lineColor = broken ? color.new(color.gray, 50) : color.new(color.green, 30)
+            int startBar = array.get(supportBars, i)
+            line l = line.new(startBar, level, bar_index + 20, level, color=lineColor, style=broken ? line.style_dashed : line.style_solid, width=2)
+            array.push(supLines, l)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СИГНАЛЫ И ЦЕЛИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+plotshape(longSignal, title="LONG ENTRY", style=shape.labelup, size=size.large, 
+     color=color.green, text="🟢 ВХОД ЛОНГ", textcolor=color.white)
+plotshape(shortSignal, title="SHORT ENTRY", style=shape.labeldown, size=size.large, 
+     color=color.red, text="🔴 ВХОД ШОРТ", textcolor=color.white)
+
+// Линии входа и стопов
+var line entryLine = na
+var line stopLine = na
+var line targetLine = na
+
+if longSignal
+    float entryPrice = close
+    float stopPrice = useATRStop ? entryPrice - atr * atrMultiplier : longEntryLevel - atr * 0.5
+    float targetPrice = entryPrice + (entryPrice - stopPrice) * defaultRR
+    
+    line.delete(entryLine)
+    line.delete(stopLine)
+    line.delete(targetLine)
+    
+    entryLine := line.new(bar_index, entryPrice, bar_index + 20, entryPrice, color=color.green, width=2)
+    stopLine := line.new(bar_index, stopPrice, bar_index + 20, stopPrice, color=color.red, width=1, style=line.style_dashed)
+    targetLine := line.new(bar_index, targetPrice, bar_index + 20, targetPrice, color=color.green, width=1, style=line.style_dashed)
+    
+    label.new(bar_index + 10, entryPrice, "Entry " + str.tostring(entryPrice, "#.##"), color=color.green, textcolor=color.white, size=size.small)
+    label.new(bar_index + 10, stopPrice, "SL", color=color.red, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + 10, targetPrice, "TP " + str.tostring(defaultRR) + ":1", color=color.green, textcolor=color.white, size=size.tiny)
+
+if shortSignal
+    float entryPrice = close
+    float stopPrice = useATRStop ? entryPrice + atr * atrMultiplier : shortEntryLevel + atr * 0.5
+    float targetPrice = entryPrice - (stopPrice - entryPrice) * defaultRR
+    
+    line.delete(entryLine)
+    line.delete(stopLine)
+    line.delete(targetLine)
+    
+    entryLine := line.new(bar_index, entryPrice, bar_index + 20, entryPrice, color=color.red, width=2)
+    stopLine := line.new(bar_index, stopPrice, bar_index + 20, stopPrice, color=color.green, width=1, style=line.style_dashed)
+    targetLine := line.new(bar_index, targetPrice, bar_index + 20, targetPrice, color=color.red, width=1, style=line.style_dashed)
+    
+    label.new(bar_index + 10, entryPrice, "Entry " + str.tostring(entryPrice, "#.##"), color=color.red, textcolor=color.white, size=size.small)
+    label.new(bar_index + 10, stopPrice, "SL", color=color.green, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + 10, targetPrice, "TP " + str.tostring(defaultRR) + ":1", color=color.red, textcolor=color.white, size=size.tiny)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ИНФО-ПАНЕЛЬ
+// ══════════════════════════════════════════════════════════════════════════════
+
+var table infoTable = table.new(position.top_right, 2, 10, 
+     bgcolor=color.new(color.black, 10), 
+     frame_color=color.gray)
+
+if barstate.islast
+    table.cell(infoTable, 0, 0, "SI Smart Flow RETEST", text_color=color.white, text_size=size.normal)
+    table.cell(infoTable, 1, 0, "", text_color=color.white)
+    
+    table.cell(infoTable, 0, 1, "H1 Тренд:", text_color=color.gray, text_size=size.small)
+    string trendText = htfBullish ? "🟢 ВВЕРХ" : htfBearish ? "🔴 ВНИЗ" : "⚪ БОКОВИК"
+    color trendColor = htfBullish ? color.green : htfBearish ? color.red : color.gray
+    table.cell(infoTable, 1, 1, trendText, text_color=trendColor, text_size=size.small)
+    
+    table.cell(infoTable, 0, 2, "Стохастик:", text_color=color.gray, text_size=size.small)
+    string stochText = str.tostring(k, "#.##")
+    color stochColor = k > 70 ? color.red : k < 30 ? color.green : color.white
+    table.cell(infoTable, 1, 2, stochText, text_color=stochColor, text_size=size.small)
+    
+    table.cell(infoTable, 0, 3, "Объем:", text_color=color.gray, text_size=size.small)
+    string volText = highVolume ? "✅ Высокий" : "—"
+    table.cell(infoTable, 1, 3, volText, text_color=highVolume ? color.green : color.gray, text_size=size.small)
+    
+    table.cell(infoTable, 0, 4, "Уровней RES:", text_color=color.gray, text_size=size.small)
+    table.cell(infoTable, 1, 4, str.tostring(array.size(resistanceLevels)), text_color=color.white, text_size=size.small)
+    
+    table.cell(infoTable, 0, 5, "Уровней SUP:", text_color=color.gray, text_size=size.small)
+    table.cell(infoTable, 1, 5, str.tostring(array.size(supportLevels)), text_color=color.white, text_size=size.small)
+    
+    table.cell(infoTable, 0, 6, "Ретест Лонг:", text_color=color.gray, text_size=size.small)
+    table.cell(infoTable, 1, 6, longRetest ? "✅" : "—", text_color=longRetest ? color.green : color.gray, text_size=size.small)
+    
+    table.cell(infoTable, 0, 7, "Ретест Шорт:", text_color=color.gray, text_size=size.small)
+    table.cell(infoTable, 1, 7, shortRetest ? "✅" : "—", text_color=shortRetest ? color.red : color.gray, text_size=size.small)
+    
+    table.cell(infoTable, 0, 8, "ATR:", text_color=color.gray, text_size=size.small)
+    table.cell(infoTable, 1, 8, str.tostring(atr, "#.##"), text_color=color.white, text_size=size.small)
+    
+    table.cell(infoTable, 0, 9, "Статус:", text_color=color.gray, text_size=size.small)
+    string statusText = longSignal ? "🟢 ВХОД ЛОНГ" : shortSignal ? "🔴 ВХОД ШОРТ" : "⏳ Ожидание"
+    color statusColor = longSignal ? color.green : shortSignal ? color.red : color.gray
+    table.cell(infoTable, 1, 9, statusText, text_color=statusColor, text_size=size.small)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// АЛЕРТЫ
+// ══════════════════════════════════════════════════════════════════════════════
+
+alertcondition(longSignal, title="Long Entry", message="🟢 Вход ЛОНГ от ретеста {{ticker}} @ {{close}}")
+alertcondition(shortSignal, title="Short Entry", message="🔴 Вход ШОРТ от ретеста {{ticker}} @ {{close}}")
+}}")
+")

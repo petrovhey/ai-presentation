@@ -1,0 +1,94 @@
+//@version=6
+strategy("Structure H1", shorttitle="StructH1", overlay=true, 
+         max_lines_count=500, max_labels_count=200, max_boxes_count=100,
+         default_qty_type=strategy.fixed, default_qty_value=1,
+         commission_type=strategy.commission.percent, commission_value=0.025,
+         margin_long=12.5, margin_short=12.5,
+         process_orders_on_close=true)
+
+// ═══════════════════════════════════════════════════════════════
+//  60-МИНУТНАЯ СТРАТЕГИЯ — left=3, right=5
+//  Лучший Sharpe по бэктесту: 2.83, PnL +5015 п, Winrate 69%
+// ═══════════════════════════════════════════════════════════════
+
+// ─── НАСТРОЙКИ ──────────────────────────────────────────────
+swing_left  = input.int (3,  "Swing Left", minval=1, maxval=20)
+swing_right = input.int (5,  "Swing Right", minval=1, maxval=20)
+atr_len     = input.int (14, "ATR Period")
+atr_mult    = input.float(1.0, "ATR × SL", step=0.1)
+tp_ratio    = input.float(1.5, "TP Ratio", step=0.1)
+
+// ─── СВИНГИ ─────────────────────────────────────────────────
+ph = ta.pivothigh(high, swing_left, swing_right)
+pl = ta.pivotlow (low,  swing_left, swing_right)
+
+var float sh1 = na, var float sh2 = na, var float sh3 = na
+var float sl1 = na, var float sl2 = na, var float sl3 = na
+
+var bool longFired  = false
+var bool shortFired = false
+
+if not na(ph)
+    sh3 := sh2, sh2 := sh1, sh1 := ph
+    shortFired := false
+
+if not na(pl)
+    sl3 := sl2, sl2 := sl1, sl1 := pl
+    longFired := false
+
+// ─── СИГНАЛЫ ────────────────────────────────────────────────
+longCond  = not na(pl) and not na(sl1) and not na(sl2) and not na(sl3) and not longFired
+longStr   = sl3 > sl2 and sl1 > sl2
+longSig   = longCond and longStr
+
+shortCond = not na(ph) and not na(sh1) and not na(sh2) and not na(sh3) and not shortFired
+shortStr  = sh3 < sh2 and sh1 < sh2
+shortSig  = shortCond and shortStr
+
+if longSig
+    longFired := true
+if shortSig
+    shortFired := true
+
+// ─── ATR ───────────────────────────────────────────────────
+atrVal = ta.atr(atr_len)
+
+// ─── ВХОДЫ / ВЫХОДЫ ────────────────────────────────────────
+var float longStop   = na
+var float longTarget = na
+var float shortStop  = na
+var float shortTarget= na
+
+if longSig and strategy.position_size <= 0
+    risk       = atrVal * atr_mult
+    entry      = close
+    longStop   := entry - risk
+    longTarget := entry + risk * tp_ratio
+    strategy.entry("Long", strategy.long)
+    strategy.exit("LongX", from_entry="Long", stop=longStop, limit=longTarget)
+
+if shortSig and strategy.position_size >= 0
+    risk        = atrVal * atr_mult
+    entry       = close
+    shortStop   := entry + risk
+    shortTarget := entry - risk * tp_ratio
+    strategy.entry("Short", strategy.short)
+    strategy.exit("ShortX", from_entry="Short", stop=shortStop, limit=shortTarget)
+
+// ─── ВИЗУАЛИЗАЦИЯ ───────────────────────────────────────────
+plotshape(longSig,  "LONG",  style=shape.triangleup,   location=location.belowbar, color=color.new(#00e676, 0), size=size.large, offset=-swing_left)
+plotshape(shortSig, "SHORT", style=shape.triangledown, location=location.abovebar, color=color.new(#ff3b3b, 0), size=size.large, offset=-swing_left)
+
+// ─── ТАБЛИЦА ────────────────────────────────────────────────
+if barstate.islast
+    var table t = table.new(position.top_right, 2, 5, bgcolor=color.new(color.black, 80), frame_color=color.gray, frame_width=1)
+    table.cell(t, 0, 0, "Сделок:", text_color=color.white, text_size=size.small)
+    table.cell(t, 1, 0, str.tostring(strategy.closedtrades), text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 1, "Winrate:", text_color=color.white, text_size=size.small)
+    table.cell(t, 1, 1, str.tostring(strategy.closedtrades.winrate) + "%", text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 2, "PnL (пункты):", text_color=color.white, text_size=size.small)
+    table.cell(t, 1, 2, str.tostring(strategy.closedtrades.profit), text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 3, "Комиссия:", text_color=color.white, text_size=size.small)
+    table.cell(t, 1, 3, str.tostring(strategy.closedtrades.commission), text_color=color.white, text_size=size.small)
+    table.cell(t, 0, 4, "Net Profit:", text_color=color.white, text_size=size.small)
+    table.cell(t, 1, 4, str.tostring(strategy.closedtrades.netprofit), text_color=color.white, text_size=size.small)

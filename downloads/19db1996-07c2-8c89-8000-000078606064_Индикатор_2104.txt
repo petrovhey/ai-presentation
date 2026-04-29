@@ -1,0 +1,250 @@
+//@version=6
+indicator("Structure Signal", shorttitle="Struct Sig", overlay=true, max_lines_count=500, max_labels_count=200, max_boxes_count=100)
+
+// ═══════════════════════════════════════════════════════════════
+//  ЛОНГ  → LL + LL + HL  → стрелка вверх + алерт
+//  ШОРТ  → HH + HH + LH  → стрелка вниз + алерт
+//  Фибо-сетка на предыдущей волне (зелёная/красная)
+//  Метки на 2 подряд HH/LL
+//  Луч на первом HH/LL при 2 подряд — пробитие телом
+// ═══════════════════════════════════════════════════════════════
+
+// ─── НАСТРОЙКИ ────────────────────────────────────────────────
+swing_left  = input.int (8,    "Swing Left Bars",  minval=1, maxval=50)
+swing_right = input.int (8,    "Swing Right Bars", minval=1, maxval=50)
+show_rays   = input.bool(true, "Лучи уровней")
+show_stop   = input.bool(true, "Зона стопа")
+show_fibo   = input.bool(true, "Фибо-сетка на предыдущей волне")
+col_bull    = input.color(color.new(#00e676, 0),  "Лонг")
+col_bear    = input.color(color.new(#ff3b3b, 0),  "Шорт")
+col_ray     = input.color(color.new(#ffd700, 55), "Лучи свингов")
+col_stop    = input.color(color.new(#888888, 85), "Стоп зона")
+
+// ─── СВИНГИ ───────────────────────────────────────────────────
+ph = ta.pivothigh(high, swing_left, swing_right)
+pl = ta.pivotlow (low,  swing_left, swing_right)
+
+var float sh1 = na
+var float sh2 = na
+var float sh3 = na
+var float sh4 = na
+var int   shi1 = na
+var int   shi2 = na
+var int   shi3 = na
+var int   shi4 = na
+
+var float sl1 = na
+var float sl2 = na
+var float sl3 = na
+var float sl4 = na
+var int   sli1 = na
+var int   sli2 = na
+var int   sli3 = na
+var int   sli4 = na
+
+var bool longFired  = false
+var bool shortFired = false
+
+if not na(ph)
+    sh4  := sh3
+    sh3  := sh2
+    sh2  := sh1
+    sh1  := ph
+    shi4 := shi3
+    shi3 := shi2
+    shi2 := shi1
+    shi1 := bar_index - swing_right
+    shortFired := false
+
+if not na(pl)
+    sl4  := sl3
+    sl3  := sl2
+    sl2  := sl1
+    sl1  := pl
+    sli4 := sli3
+    sli3 := sli2
+    sli2 := sli1
+    sli1 := bar_index - swing_right
+    longFired := false
+
+// ─── ХРАНИЛИЩЕ АКТИВНЫХ ЛУЧЕЙ ─────────────────────────────────
+var line[]  ray_lines  = array.new<line>()
+var float[] ray_levels = array.new<float>()
+var label[] ray_labels = array.new<label>()
+
+if show_rays and not na(ph)
+    isHH  = not na(sh2) and ph > sh2
+    lbl   = isHH ? "HH" : "LH"
+    lcol  = isHH ? col_bull : col_bear
+    new_line  = line.new(bar_index - swing_right, ph, bar_index, ph, color=col_ray, width=1, style=line.style_dashed)
+    new_label = label.new(bar_index - swing_right, ph, text=lbl, style=label.style_label_down, color=color.new(lcol, 30), textcolor=color.white, size=size.small)
+    array.push(ray_lines,  new_line)
+    array.push(ray_levels, ph)
+    array.push(ray_labels, new_label)
+
+if show_rays and not na(pl)
+    isLL  = not na(sl2) and pl < sl2
+    lbl   = isLL ? "LL" : "HL"
+    lcol  = isLL ? col_bear : col_bull
+    new_line  = line.new(bar_index - swing_right, pl, bar_index, pl, color=col_ray, width=1, style=line.style_dashed)
+    new_label = label.new(bar_index - swing_right, pl, text=lbl, style=label.style_label_up, color=color.new(lcol, 30), textcolor=color.white, size=size.small)
+    array.push(ray_lines,  new_line)
+    array.push(ray_levels, pl)
+    array.push(ray_labels, new_label)
+
+if show_rays and array.size(ray_lines) > 0
+    i = 0
+    while i < array.size(ray_lines)
+        lvl     = array.get(ray_levels, i)
+        ray_ln  = array.get(ray_lines,  i)
+        ray_lb  = array.get(ray_labels, i)
+
+        body_top    = math.max(open, close)
+        body_bot    = math.min(open, close)
+        isCrossed   = body_bot < lvl and body_top > lvl
+
+        if isCrossed
+            line.delete(ray_ln)
+            label.delete(ray_lb)
+            array.remove(ray_lines,  i)
+            array.remove(ray_levels, i)
+            array.remove(ray_labels, i)
+        else
+            line.set_x2(ray_ln, bar_index)
+            i += 1
+
+// ─── УСЛОВИЯ СИГНАЛОВ ─────────────────────────────────────────
+longCond = not na(pl) and not na(sl1) and not na(sl2) and not na(sl3) and not longFired
+longStr  = sl3 > sl2 and sl1 > sl2
+longSig  = longCond and longStr
+
+shortCond = not na(ph) and not na(sh1) and not na(sh2) and not na(sh3) and not shortFired
+shortStr  = sh3 < sh2 and sh1 < sh2
+shortSig  = shortCond and shortStr
+
+if longSig
+    longFired := true
+
+if shortSig
+    shortFired := true
+
+// ─── ФИБО-СЕТКА НА ПРЕДЫДУЩЕЙ ВОЛНЕ (цветная) ─────────────────
+var line[]  fibo_lines  = array.new<line>()
+var label[] fibo_labels = array.new<label>()
+
+fibo_ratios = array.from(0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0)
+fibo_names  = array.from("0", "23.6", "38.2", "50", "61.8", "78.6", "100")
+
+fibo_delete_all() =>
+    for fl in fibo_lines
+        line.delete(fl)
+    for flb in fibo_labels
+        label.delete(flb)
+    array.clear(fibo_lines)
+    array.clear(fibo_labels)
+
+fibo_draw(src, dst, src_idx, dst_idx, sig_idx, line_col) =>
+    fib_range = math.abs(dst - src)
+    direction = dst > src ? 1 : -1
+    mid_idx   = math.round((src_idx + sig_idx) / 2.0)
+    zone_col  = color.new(line_col, 20)
+    for i = 0 to array.size(fibo_ratios) - 1
+        ratio = array.get(fibo_ratios, i)
+        lvl   = src + fib_range * ratio * direction
+        name  = array.get(fibo_names, i)
+        lcol  = ratio >= 0.5 and ratio <= 0.65 ? zone_col : line_col
+        lwid  = ratio == 0.5 or ratio == 0.618 ? 2 : 1
+        fl = line.new(src_idx, lvl, sig_idx, lvl, color=lcol, width=lwid, style=line.style_solid)
+        array.push(fibo_lines, fl)
+        flb = label.new(mid_idx, lvl, text=name + "%", style=label.style_label_center, color=color.new(lcol, 80), textcolor=color.white, size=size.tiny)
+        array.push(fibo_labels, flb)
+
+sig_idx = bar_index - swing_right
+
+if show_fibo and longSig
+    if not na(sh1) and not na(sl2) and not na(shi1) and not na(sli2)
+        fibo_draw(sh1, sl2, shi1, sli2, sig_idx, color.new(col_bull, 30))
+
+if show_fibo and shortSig
+    if not na(sl1) and not na(sh2) and not na(sli1) and not na(shi2)
+        fibo_draw(sl1, sh2, sli1, shi2, sig_idx, color.new(col_bear, 30))
+
+// ─── МЕТКИ НА 2 ПОДРЯД HH / LL ────────────────────────────────
+if longSig
+    if not na(sl3) and not na(sli3)
+        label.new(sli3, sl3, text="LL", style=label.style_label_up, color=color.new(col_bear, 20), textcolor=color.white, size=size.small)
+    if not na(sl2) and not na(sli2)
+        label.new(sli2, sl2, text="LL", style=label.style_label_up, color=color.new(col_bear, 20), textcolor=color.white, size=size.small)
+    if not na(sl1) and not na(sli1)
+        label.new(sli1, sl1, text="HL", style=label.style_label_up, color=color.new(col_bull, 20), textcolor=color.black, size=size.small)
+
+if shortSig
+    if not na(sh3) and not na(shi3)
+        label.new(shi3, sh3, text="HH", style=label.style_label_down, color=color.new(col_bull, 20), textcolor=color.white, size=size.small)
+    if not na(sh2) and not na(shi2)
+        label.new(shi2, sh2, text="HH", style=label.style_label_down, color=color.new(col_bull, 20), textcolor=color.white, size=size.small)
+    if not na(sh1) and not na(shi1)
+        label.new(shi1, sh1, text="LH", style=label.style_label_down, color=color.new(col_bear, 20), textcolor=color.white, size=size.small)
+
+// ─── ЛУЧИ НА ПЕРВОМ HH/LL (при 2 подряд, массив) ──────────────
+// 2 LL: sl4 > sl3 > sl2 → зелёный луч от sl3 (первый LL)
+// 2 HH: sh4 < sh3 < sh2 → красный луч от sh3 (первый HH)
+// Каждый луч живёт пока тело свечи не пробьёт его уровень
+var line[]  first_rays   = array.new<line>()
+var float[] first_levels = array.new<float>()
+
+// 2 LL подряд
+if not na(sl2) and not na(sl3) and not na(sl4) and not na(sli3)
+    if sl4 > sl3 and sl3 > sl2
+        new_ray = line.new(sli3, sl3, bar_index, sl3, color=col_bull, width=2, style=line.style_solid)
+        array.push(first_rays, new_ray)
+        array.push(first_levels, sl3)
+
+// 2 HH подряд
+if not na(sh2) and not na(sh3) and not na(sh4) and not na(shi3)
+    if sh4 < sh3 and sh3 < sh2
+        new_ray = line.new(shi3, sh3, bar_index, sh3, color=col_bear, width=2, style=line.style_solid)
+        array.push(first_rays, new_ray)
+        array.push(first_levels, sh3)
+
+// Продление + пробитие всех активных лучей
+if array.size(first_rays) > 0
+    i = 0
+    while i < array.size(first_rays)
+        lvl     = array.get(first_levels, i)
+        ray_ln  = array.get(first_rays,   i)
+        b_top   = math.max(open, close)
+        b_bot   = math.min(open, close)
+        crossed = b_bot < lvl and b_top > lvl
+        if crossed
+            line.delete(ray_ln)
+            array.remove(first_rays,   i)
+            array.remove(first_levels, i)
+        else
+            line.set_x2(ray_ln, bar_index)
+            i += 1
+
+// ─── ВИЗУАЛИЗАЦИЯ ЛОНГ ────────────────────────────────────────
+if longSig
+    atr = ta.atr(14)
+    if show_stop
+        box.new(left=sli1, top=sl1, right=bar_index + 10, bottom=sl2, border_color=color.new(col_bear, 60), border_width=1, bgcolor=col_stop)
+        label.new(bar_index, sl2, text="SL", style=label.style_label_right, color=color.new(col_bear, 20), textcolor=color.white, size=size.tiny)
+    label.new(bar_index - swing_right, sl1 - atr * 0.5, text="▲ LONG", style=label.style_label_up, color=color.new(col_bull, 5), textcolor=color.black, size=size.small)
+    alert("LONG: LL+LL+HL → сигнал лонг", alert.freq_once_per_bar)
+
+// ─── ВИЗУАЛИЗАЦИЯ ШОРТ ────────────────────────────────────────
+if shortSig
+    atr = ta.atr(14)
+    if show_stop
+        box.new(left=shi1, top=sh2, right=bar_index + 10, bottom=sh1, border_color=color.new(col_bull, 60), border_width=1, bgcolor=col_stop)
+        label.new(bar_index, sh2, text="SL", style=label.style_label_right, color=color.new(col_bull, 20), textcolor=color.white, size=size.tiny)
+    label.new(bar_index - swing_right, sh1 + atr * 0.5, text="▼ SHORT", style=label.style_label_down, color=color.new(col_bear, 5), textcolor=color.white, size=size.small)
+    alert("SHORT: HH+HH+LH → сигнал шорт", alert.freq_once_per_bar)
+
+// ─── СТРЕЛКИ ──────────────────────────────────────────────────
+plotshape(longSig,  "LONG",  style=shape.triangleup,   location=location.belowbar, color=col_bull, size=size.large, offset=-swing_right)
+plotshape(shortSig, "SHORT", style=shape.triangledown, location=location.abovebar, color=col_bear, size=size.large, offset=-swing_right)
+
+// ─── ALERT CONDITIONS ─────────────────────────────────────────
+alertcondition(longSig or shortSig, "Signal", "Structure Signal")

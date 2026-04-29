@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 340px;
+    background: #0f0f13;
+    color: #e2e2e8;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 14px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #2a2a35;
+  }
+  .header h1 { font-size: 15px; color: #ff6b35; }
+  .status {
+    margin-left: auto;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    background: #2a2a35;
+    color: #888;
+  }
+  .status.ok { background: #1a3a1a; color: #4ade80; }
+  .status.bad { background: #3a1a1a; color: #f87171; }
+  .section {
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: #888;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .script-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: #16161e;
+    border: 1px solid #2a2a35;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .script-row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toggle {
+    width: 28px;
+    height: 16px;
+    background: #2a2a35;
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: #ff6b35; }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    transition: 0.2s;
+  }
+  .toggle.on::after { left: 14px; }
+  .empty { font-size: 12px; color: #555; text-align: center; padding: 16px; }
+  .quick-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .quick-box input {
+    background: #16161e;
+    border: 1px solid #2a2a35;
+    border-radius: 8px;
+    padding: 10px;
+    color: #e2e2e8;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .quick-box input:focus { outline: none; border-color: #ff6b35; }
+  .btn {
+    width: 100%;
+    padding: 10px;
+    background: #ff6b35;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .btn:hover { background: #e55a2b; }
+  .btn.secondary {
+    background: #2a2a35;
+    margin-top: 0;
+  }
+  .btn.secondary:hover { background: #3a3a45; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🐵 AI Monkey</h1>
+  <span class="status" id="status">● ...</span>
+</div>
+
+<div class="section">
+  <div class="section-title">Active on this page</div>
+  <div id="activeScripts"></div>
+</div>
+
+<div class="quick-box">
+  <div class="section-title">⚡ Quick Ask AI</div>
+  <input type="text" id="quickInput" placeholder="Describe script you want...">
+  <button class="btn" id="quickAskBtn">Ask AI → Open Dashboard</button>
+</div>
+
+<button class="btn secondary" id="openSidepanel">🤖 Open Dashboard</button>
+
+<script src="popup.js"></script>
+</body>
+</html>

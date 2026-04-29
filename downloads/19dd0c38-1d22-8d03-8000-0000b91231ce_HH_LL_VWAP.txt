@@ -1,0 +1,264 @@
+//@version=6
+indicator("Structure Signal", shorttitle="Struct Sig", overlay=true, max_lines_count=500, max_labels_count=200, max_boxes_count=100)
+ 
+// ═══════════════════════════════════════════════════════════════
+//  ЛОНГ  → LL + LL + HL  → стрелка вверх + алерт
+//  ШОРТ  → HH + HH + LH  → стрелка вниз + алерт
+//  Луч на первом HH/LL при 2 подряд — пробитие телом
+//  5 VWAP (D/D-1/D-2/W/M) без стандартного отклонения, цвет по положению цены
+// ═══════════════════════════════════════════════════════════════
+ 
+// ─── НАСТРОЙКИ ────────────────────────────────────────────────
+swing_left  = input.int (8,    "Swing Left Bars",  minval=1, maxval=50)
+swing_right = input.int (8,    "Swing Right Bars", minval=1, maxval=50)
+show_rays   = input.bool(true, "Лучи уровней")
+show_stop   = input.bool(true, "Зона стопа")
+col_bull    = input.color(color.new(#00e676, 0),  "Лонг")
+col_bear    = input.color(color.new(#ff3b3b, 0),  "Шорт")
+col_ray     = input.color(color.new(#ffd700, 55), "Лучи свингов")
+col_stop    = input.color(color.new(#888888, 85), "Стоп зона")
+ 
+// ─── НАСТРОЙКИ VWAP ───────────────────────────────────────────
+show_vwapD  = input.bool(true, "VWAP D (сегодня)",     group="VWAP")
+show_vwapD1 = input.bool(true, "VWAP D-1 (вчера)",     group="VWAP")
+show_vwapD2 = input.bool(true, "VWAP D-2 (позавчера)", group="VWAP")
+show_vwapW  = input.bool(true, "VWAP W (неделя)",      group="VWAP")
+show_vwapM  = input.bool(true, "VWAP M (месяц)",       group="VWAP")
+ 
+// ─── СВИНГИ ───────────────────────────────────────────────────
+ph = ta.pivothigh(high, swing_left, swing_right)
+pl = ta.pivotlow (low,  swing_left, swing_right)
+ 
+var float sh1 = na
+var float sh2 = na
+var float sh3 = na
+var float sh4 = na
+var int   shi1 = na
+var int   shi2 = na
+var int   shi3 = na
+var int   shi4 = na
+ 
+var float sl1 = na
+var float sl2 = na
+var float sl3 = na
+var float sl4 = na
+var int   sli1 = na
+var int   sli2 = na
+var int   sli3 = na
+var int   sli4 = na
+ 
+var bool longFired  = false
+var bool shortFired = false
+ 
+if not na(ph)
+    sh4  := sh3
+    sh3  := sh2
+    sh2  := sh1
+    sh1  := ph
+    shi4 := shi3
+    shi3 := shi2
+    shi2 := shi1
+    shi1 := bar_index - swing_right
+    shortFired := false
+ 
+if not na(pl)
+    sl4  := sl3
+    sl3  := sl2
+    sl2  := sl1
+    sl1  := pl
+    sli4 := sli3
+    sli3 := sli2
+    sli2 := sli1
+    sli1 := bar_index - swing_right
+    longFired := false
+ 
+// ─── ХРАНИЛИЩЕ АКТИВНЫХ ЛУЧЕЙ (без меток HH/LL/LH/HL) ─────────
+var line[]  ray_lines  = array.new<line>()
+var float[] ray_levels = array.new<float>()
+ 
+if show_rays and not na(ph)
+    new_line  = line.new(bar_index - swing_right, ph, bar_index, ph, color=col_ray, width=1, style=line.style_dashed)
+    array.push(ray_lines,  new_line)
+    array.push(ray_levels, ph)
+ 
+if show_rays and not na(pl)
+    new_line  = line.new(bar_index - swing_right, pl, bar_index, pl, color=col_ray, width=1, style=line.style_dashed)
+    array.push(ray_lines,  new_line)
+    array.push(ray_levels, pl)
+ 
+if show_rays and array.size(ray_lines) > 0
+    i = 0
+    while i < array.size(ray_lines)
+        lvl     = array.get(ray_levels, i)
+        ray_ln  = array.get(ray_lines,  i)
+ 
+        body_top    = math.max(open, close)
+        body_bot    = math.min(open, close)
+        isCrossed   = body_bot < lvl and body_top > lvl
+ 
+        if isCrossed
+            line.delete(ray_ln)
+            array.remove(ray_lines,  i)
+            array.remove(ray_levels, i)
+        else
+            line.set_x2(ray_ln, bar_index)
+            i += 1
+ 
+// ─── УСЛОВИЯ СИГНАЛОВ ─────────────────────────────────────────
+longCond = not na(pl) and not na(sl1) and not na(sl2) and not na(sl3) and not longFired
+longStr  = sl3 > sl2 and sl1 > sl2
+longSig  = longCond and longStr
+ 
+shortCond = not na(ph) and not na(sh1) and not na(sh2) and not na(sh3) and not shortFired
+shortStr  = sh3 < sh2 and sh1 < sh2
+shortSig  = shortCond and shortStr
+ 
+if longSig
+    longFired := true
+ 
+if shortSig
+    shortFired := true
+ 
+// ─── ЛУЧИ НА ПЕРВОМ HH/LL (при 2 подряд, массив) ──────────────
+var line[]  first_rays   = array.new<line>()
+var float[] first_levels = array.new<float>()
+ 
+// 2 LL подряд
+if not na(sl2) and not na(sl3) and not na(sl4) and not na(sli3)
+    if sl4 > sl3 and sl3 > sl2
+        new_ray = line.new(sli3, sl3, bar_index, sl3, color=col_bull, width=2, style=line.style_solid)
+        array.push(first_rays, new_ray)
+        array.push(first_levels, sl3)
+ 
+// 2 HH подряд
+if not na(sh2) and not na(sh3) and not na(sh4) and not na(shi3)
+    if sh4 < sh3 and sh3 < sh2
+        new_ray = line.new(shi3, sh3, bar_index, sh3, color=col_bear, width=2, style=line.style_solid)
+        array.push(first_rays, new_ray)
+        array.push(first_levels, sh3)
+ 
+// Продление + пробитие всех активных лучей
+if array.size(first_rays) > 0
+    i = 0
+    while i < array.size(first_rays)
+        lvl     = array.get(first_levels, i)
+        ray_ln  = array.get(first_rays,   i)
+        b_top   = math.max(open, close)
+        b_bot   = math.min(open, close)
+        crossed = b_bot < lvl and b_top > lvl
+        if crossed
+            line.delete(ray_ln)
+            array.remove(first_rays,   i)
+            array.remove(first_levels, i)
+        else
+            line.set_x2(ray_ln, bar_index)
+            i += 1
+ 
+// ─── 5 VWAP (D, D-1, D-2, W, M) ──────────────────────────────
+// Используем request.security для надёжного определения смены дня,
+// недели и месяца — без привязки к конкретному часу UTC.
+ 
+// --- Вспомогательные данные о смене периода ---
+startD = request.security(syminfo.tickerid, "D", time, lookahead=barmerge.lookahead_on)
+isNewDay = ta.change(startD) != 0
+ 
+startW = request.security(syminfo.tickerid, "W", time, lookahead=barmerge.lookahead_on)
+isNewWeek = ta.change(startW) != 0
+ 
+startM = request.security(syminfo.tickerid, "M", time, lookahead=barmerge.lookahead_on)
+isNewMonth = ta.change(startM) != 0
+ 
+// --- VWAP сегодня (D) ---
+var float vwapD_sum = 0.0
+var float vwapD_vol = 0.0
+if isNewDay
+    vwapD_sum := hl2 * volume
+    vwapD_vol := volume
+else
+    vwapD_sum := vwapD_sum[1] + hl2 * volume
+    vwapD_vol := vwapD_vol[1] + volume
+vwapD = vwapD_vol > 0 ? vwapD_sum / vwapD_vol : na
+ 
+// --- VWAP вчера (D-1): фиксируем финальное значение предыдущего дня ---
+// Логика: накапливаем «буферный» VWAP параллельно текущему дню.
+// Когда наступает новый день → буфер становится D-1, D-1 становится D-2.
+var float vwapD1_sum = 0.0
+var float vwapD1_vol = 0.0
+var float vwapD1     = na   // финальное значение D-1 (константа на весь день)
+var float vwapD2     = na   // финальное значение D-2
+ 
+// Буфер для предыдущего дня — накапливается параллельно текущему
+var float bufD1_sum = 0.0
+var float bufD1_vol = 0.0
+ 
+if isNewDay
+    // Сохраняем D-1 → D-2, буфер → D-1
+    vwapD2     := vwapD1
+    vwapD1     := bufD1_vol > 0 ? bufD1_sum / bufD1_vol : na
+    // Начинаем новый буфер (будущий D-1)
+    bufD1_sum  := hl2 * volume
+    bufD1_vol  := volume
+else
+    bufD1_sum  := bufD1_sum[1] + hl2 * volume
+    bufD1_vol  := bufD1_vol[1] + volume
+ 
+// --- VWAP неделя (W) ---
+var float vwapW_sum = 0.0
+var float vwapW_vol = 0.0
+if isNewWeek
+    vwapW_sum := hl2 * volume
+    vwapW_vol := volume
+else
+    vwapW_sum := vwapW_sum[1] + hl2 * volume
+    vwapW_vol := vwapW_vol[1] + volume
+vwapW = vwapW_vol > 0 ? vwapW_sum / vwapW_vol : na
+ 
+// --- VWAP месяц (M) ---
+var float vwapM_sum = 0.0
+var float vwapM_vol = 0.0
+if isNewMonth
+    vwapM_sum := hl2 * volume
+    vwapM_vol := volume
+else
+    vwapM_sum := vwapM_sum[1] + hl2 * volume
+    vwapM_vol := vwapM_vol[1] + volume
+vwapM = vwapM_vol > 0 ? vwapM_sum / vwapM_vol : na
+ 
+// --- Цвета: зелёный если цена выше, красный если ниже ---
+col_vwapD  = close > vwapD  ? color.green : color.red
+col_vwapD1 = close > vwapD1 ? color.green : color.red
+col_vwapD2 = close > vwapD2 ? color.green : color.red
+col_vwapW  = close > vwapW  ? color.green : color.red
+col_vwapM  = close > vwapM  ? color.green : color.red
+ 
+// --- Отображение ---
+plot(show_vwapD  ? vwapD  : na, "VWAP D",   color=col_vwapD,  linewidth=2)
+plot(show_vwapD1 ? vwapD1 : na, "VWAP D-1", color=col_vwapD1, linewidth=2, style=plot.style_line)
+plot(show_vwapD2 ? vwapD2 : na, "VWAP D-2", color=col_vwapD2, linewidth=2, style=plot.style_line)
+plot(show_vwapW  ? vwapW  : na, "VWAP W",   color=col_vwapW,  linewidth=2)
+plot(show_vwapM  ? vwapM  : na, "VWAP M",   color=col_vwapM,  linewidth=2)
+ 
+// ─── ВИЗУАЛИЗАЦИЯ ЛОНГ ────────────────────────────────────────
+if longSig
+    atr = ta.atr(14)
+    if show_stop
+        box.new(left=sli1, top=sl1, right=bar_index + 10, bottom=sl2, border_color=color.new(col_bear, 60), border_width=1, bgcolor=col_stop)
+        label.new(bar_index, sl2, text="SL", style=label.style_label_right, color=color.new(col_bear, 20), textcolor=color.white, size=size.tiny)
+    label.new(bar_index - swing_right, sl1 - atr * 0.5, text="▲ LONG", style=label.style_label_up, color=color.new(col_bull, 5), textcolor=color.black, size=size.small)
+    alert("LONG: LL+LL+HL → сигнал лонг", alert.freq_once_per_bar)
+ 
+// ─── ВИЗУАЛИЗАЦИЯ ШОРТ ────────────────────────────────────────
+if shortSig
+    atr = ta.atr(14)
+    if show_stop
+        box.new(left=shi1, top=sh2, right=bar_index + 10, bottom=sh1, border_color=color.new(col_bull, 60), border_width=1, bgcolor=col_stop)
+        label.new(bar_index, sh2, text="SL", style=label.style_label_right, color=color.new(col_bull, 20), textcolor=color.white, size=size.tiny)
+    label.new(bar_index - swing_right, sh1 + atr * 0.5, text="▼ SHORT", style=label.style_label_down, color=color.new(col_bear, 5), textcolor=color.white, size=size.small)
+    alert("SHORT: HH+HH+LH → сигнал шорт", alert.freq_once_per_bar)
+ 
+// ─── СТРЕЛКИ ──────────────────────────────────────────────────
+plotshape(longSig,  "LONG",  style=shape.triangleup,   location=location.belowbar, color=col_bull, size=size.small, offset=-swing_right)
+plotshape(shortSig, "SHORT", style=shape.triangledown, location=location.abovebar, color=col_bear, size=size.small, offset=-swing_right)
+ 
+// ─── ALERT CONDITIONS ─────────────────────────────────────────
+alertcondition(longSig or shortSig, "Signal", "Structure Signal")

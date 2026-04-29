@@ -1,0 +1,361 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// SI Smart Flow STRATEGY — Smart Money + VSA + Price Action
+// Для бэктеста на истории (фьючерсы, акции)
+// Стиль: SMC + Вайкофф + VSA + Дивергенции
+// ══════════════════════════════════════════════════════════════════════════════
+
+// @version=5
+strategy("SI Smart Flow STRATEGY", 
+     shorttitle="SI Smart Flow STRAT", 
+     overlay=true, 
+     initial_capital=100000,
+     default_qty_type=strategy.percent_of_equity,
+     default_qty_value=10,
+     commission_type=strategy.commission.percent,
+     commission_value=0.04,
+     slippage=1)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// НАСТРОЙКИ СТРАТЕГИИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+groupCapital = "💰 Управление капиталом"
+capitalPercent = input.float(10, title="% капитала на сделку", minval=1, maxval=100, step=1, group=groupCapital)
+useFixedQty = input.bool(false, title="Использовать фикс. лот", group=groupCapital)
+fixedQty = input.float(1, title="Фикс. кол-во контрактов", minval=0.1, step=0.1, group=groupCapital)
+
+// === Риск-менеджмент ===
+groupRisk = "🛡️ Риск-менеджмент"
+stopType = input.string("ATR", title="Тип стопа", options=["Фиксированный", "ATR", "Свинг"], group=groupRisk)
+fixedStop = input.float(500, title="Фикс. стоп (пункты)", minval=10, step=10, group=groupRisk)
+atrLength = input.int(14, title="ATR период", minval=5, maxval=50, group=groupRisk)
+atrMultiplier = input.float(1.5, title="ATR множитель", minval=0.5, maxval=5, step=0.1, group=groupRisk)
+minRR = input.float(1.5, title="Мин. Risk/Reward", minval=1.0, maxval=5, step=0.5, group=groupRisk)
+useTrailing = input.bool(false, title="Использовать трейлинг-стоп", group=groupRisk)
+trailingPercent = input.float(1.0, title="Трейлинг %", minval=0.1, maxval=5, step=0.1, group=groupRisk)
+
+// === Стохастик (твои параметры 18-3-5) ===
+stochGroup = "📊 Стохастик"
+stochLength = input.int(18, title="Длина", minval=1, group=stochGroup)
+smoothK = input.int(3, title="Smooth K", minval=1, group=stochGroup)
+smoothD = input.int(5, title="Smooth D", minval=1, group=stochGroup)
+useStochDiv = input.bool(true, title="Учитывать дивергенции", group=stochGroup)
+
+// === Smart Money ===
+smcGroup = "🔥 Smart Money"
+obLookback = input.int(5, title="OB Lookback", minval=2, maxval=20, group=smcGroup)
+obMinImpulse = input.float(0.3, title="Мин. импульс для OB (%)", minval=0.1, maxval=2.0, step=0.1, group=smcGroup)
+useOB = input.bool(true, title="Учитывать OB", group=smcGroup)
+useSwings = input.bool(true, title="Учитывать свинги", group=smcGroup)
+swingLookback = input.int(5, title="Свинг Lookback", minval=3, maxval=20, group=smcGroup)
+
+// === VSA ===
+vsaGroup = "📈 VSA"
+useVSA = input.bool(true, title="Учитывать VSA", group=vsaGroup)
+volumeMA = input.int(20, title="MA объёма", minval=5, maxval=50, group=vsaGroup)
+vsaThreshold = input.float(1.5, title="Порог объёма", minval=1.0, maxval=3.0, step=0.1, group=vsaGroup)
+
+// === Паттерны ===
+patternGroup = "🎯 Паттерны"
+useQuasimodo = input.bool(true, title="Квазимодо (QML)", group=patternGroup)
+useFakeout = input.bool(true, title="Ложные пробои", group=patternGroup)
+fakeoutWickRatio = input.float(0.6, title="Мин. тень для fakeout", minval=0.3, maxval=0.9, step=0.1, group=patternGroup)
+
+// === Фильтры ===
+filterGroup = "🔍 Фильтры"
+useTrendFilter = input.bool(true, title="Фильтр по тренду (EMA)", group=filterGroup)
+trendEMA = input.int(50, title="EMA период", minval=10, maxval=200, group=filterGroup)
+useSessionFilter = input.bool(false, title="Торговля только в сессию", group=filterGroup)
+startHour = input.int(10, title="Старт (час)", minval=0, maxval=23, group=filterGroup)
+endHour = input.int(18, title="Конец (час)", minval=0, maxval=23, group=filterGroup)
+minScore = input.int(4, title="Мин. Score для входа", minval=1, maxval=10, group=filterGroup)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// РАСЧЁТ ИНДИКАТОРОВ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// === Стохастик ===
+k = ta.sma(ta.stoch(close, high, low, stochLength), smoothK)
+d = ta.sma(k, smoothD)
+
+// Детекция дивергенций
+var float lastHighPrice = na
+var float lastHighStoch = na
+var float lastLowPrice = na
+var float lastLowStoch = na
+var int lastHighBar = na
+var int lastLowBar = na
+
+bullDiv = false
+bearDiv = false
+
+if high > nz(lastHighPrice)
+    lastHighPrice := high
+    lastHighStoch := k
+    lastHighBar := bar_index
+
+if low < nz(lastLowPrice)
+    lastLowPrice := low
+    lastLowStoch := k
+    lastLowBar := bar_index
+
+// Медвежья дивергенция
+if high < lastHighPrice and k > lastHighStoch and k > 70 and bar_index - lastHighBar > 3
+    bearDiv := true
+    lastHighPrice := high
+    lastHighStoch := k
+    lastHighBar := bar_index
+
+// Бычья дивергенция
+if low > lastLowPrice and k < lastLowStoch and k < 30 and bar_index - lastLowBar > 3
+    bullDiv := true
+    lastLowPrice := low
+    lastLowStoch := k
+    lastLowBar := bar_index
+
+// === Order Blocks ===
+impulseUp = close > open and (close - open) / close * 100 > obMinImpulse
+impulseDown = close < open and (open - close) / close * 100 > obMinImpulse
+
+var float bullOB_high = na
+var float bullOB_low = na
+var int bullOB_start = na
+var bool bullOB_active = false
+
+if impulseUp and not impulseUp[1]
+    bullOB_high := high[1]
+    bullOB_low := low[1]
+    bullOB_start := bar_index[1]
+    bullOB_active := true
+
+if bullOB_active and low <= bullOB_high and high >= bullOB_low
+    bullOB_active := false
+
+var float bearOB_high = na
+var float bearOB_low = na
+var int bearOB_start = na
+var bool bearOB_active = false
+
+if impulseDown and not impulseDown[1]
+    bearOB_high := high[1]
+    bearOB_low := low[1]
+    bearOB_start := bar_index[1]
+    bearOB_active := true
+
+if bearOB_active and high >= bearOB_low and low <= bearOB_high
+    bearOB_active := false
+
+// === Свинги ===
+pivotHigh = ta.pivothigh(high, swingLookback, swingLookback)
+pivotLow = ta.pivotlow(low, swingLookback, swingLookback)
+
+var float recentSwingHigh = na
+var float recentSwingLow = na
+
+if not na(pivotHigh)
+    recentSwingHigh := pivotHigh
+
+if not na(pivotLow)
+    recentSwingLow := pivotLow
+
+// === VSA ===
+avgVolume = ta.sma(volume, volumeMA)
+highVolume = volume > avgVolume * vsaThreshold
+
+spread = high - low
+body = math.abs(close - open)
+upperWick = high - math.max(close, open)
+lowerWick = math.min(close, open) - low
+
+stopRun = highVolume and (upperWick > body * 2 or lowerWick > body * 2)
+climaxUp = highVolume and close > open and body / spread > 0.6
+climaxDown = highVolume and close < open and body / spread > 0.6
+
+// === Паттерны ===
+recentHigh = ta.highest(high, 10)[1]
+recentLow = ta.lowest(low, 10)[1]
+
+bullQML = low <= recentLow and close > recentLow and close[1] > open[1]
+bearQML = high >= recentHigh and close < recentHigh and close[1] < open[1]
+
+wickRatioUp = upperWick / spread > fakeoutWickRatio
+wickRatioDown = lowerWick / spread > fakeoutWickRatio
+
+fakeoutUp = high > high[1] and close < high[1] and wickRatioUp and highVolume
+fakeoutDown = low < low[1] and close > low[1] and wickRatioDown and highVolume
+
+// === Тренд (EMA) ===
+ema = ta.ema(close, trendEMA)
+trendUp = close > ema
+trendDown = close < ema
+
+// === Время ===
+inSession = (hour >= startHour and hour <= endHour) or not useSessionFilter
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СИГНАЛЫ (SCORING SYSTEM)
+// ══════════════════════════════════════════════════════════════════════════════
+
+longScore = 0
+shortScore = 0
+
+// Дивергенции
+if useStochDiv and bullDiv
+    longScore += 2
+if useStochDiv and bearDiv
+    shortScore += 2
+
+// OB
+inBullOB = useOB and bullOB_active and low <= bullOB_high and low >= bullOB_low
+inBearOB = useOB and bearOB_active and high >= bearOB_low and high <= bearOB_high
+
+if inBullOB
+    longScore += 2
+if inBearOB
+    shortScore += 2
+
+// VSA
+if useVSA and stopRun and lowerWick > upperWick
+    longScore += 1
+if useVSA and stopRun and upperWick > lowerWick
+    shortScore += 1
+
+// Паттерны
+if useQuasimodo and bullQML
+    longScore += 2
+if useQuasimodo and bearQML
+    shortScore += 2
+if useFakeout and fakeoutDown
+    longScore += 2
+if useFakeout and fakeoutUp
+    shortScore += 2
+
+// Фильтр тренда
+if useTrendFilter and trendUp
+    longScore += 1
+if useTrendFilter and trendDown
+    shortScore += 1
+
+// Финальные сигналы
+longCondition = longScore >= minScore and not (strategy.position_size > 0) and inSession
+shortCondition = shortScore >= minScore and not (strategy.position_size < 0) and inSession
+
+// ══════════════════════════════════════════════════════════════════════════════
+// РАСЧЁТ СТОПОВ И ЦЕЛЕЙ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ATR для стопов
+atr = ta.atr(atrLength)
+
+// Расчёт стопа для лонга
+longStopPrice = switch stopType
+    "Фиксированный" => close - fixedStop
+    "ATR" => close - atr * atrMultiplier
+    "Свинг" => nz(recentSwingLow, close * 0.99)
+    => close * 0.98
+
+// Расчёт стопа для шорта
+shortStopPrice = switch stopType
+    "Фиксированный" => close + fixedStop
+    "ATR" => close + atr * atrMultiplier
+    "Свинг" => nz(recentSwingHigh, close * 1.01)
+    => close * 1.02
+
+// Расчёт тейка по Risk/Reward
+longRisk = close - longStopPrice
+longTarget = close + longRisk * minRR
+
+shortRisk = shortStopPrice - close
+shortTarget = close - shortRisk * minRR
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ВХОДЫ В ПОЗИЦИИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Размер позиции
+qty = useFixedQty ? fixedQty : strategy.equity * capitalPercent / 100 / close
+
+// === LONG ===
+if longCondition
+    strategy.entry("Long", strategy.long, qty=qty)
+    strategy.exit("Long SL/TP", "Long", stop=longStopPrice, limit=longTarget)
+    
+    if useTrailing
+        strategy.exit("Long Trail", "Long", trail_points=longRisk * trailingPercent / 100, trail_offset=longRisk * trailingPercent / 100)
+
+// === SHORT ===
+if shortCondition
+    strategy.entry("Short", strategy.short, qty=qty)
+    strategy.exit("Short SL/TP", "Short", stop=shortStopPrice, limit=shortTarget)
+    
+    if useTrailing
+        strategy.exit("Short Trail", "Short", trail_points=shortRisk * trailingPercent / 100, trail_offset=shortRisk * trailingPercent / 100)
+
+// Закрытие по противоположному сигналу (опционально)
+closeOnReverse = input.bool(false, title="Закрывать по реверсу", group=filterGroup)
+
+if closeOnReverse and strategy.position_size > 0 and shortScore >= minScore
+    strategy.close("Long", comment="Reverse Short")
+
+if closeOnReverse and strategy.position_size < 0 and longScore >= minScore
+    strategy.close("Short", comment="Reverse Long")
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ВИЗУАЛИЗАЦИЯ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Order Blocks
+plotshape(bullOB_active and useOB, title="Bull OB", style=shape.square, size=size.tiny, color=color.new(color.green, 50), location=location.belowbar)
+plotshape(bearOB_active and useOB, title="Bear OB", style=shape.square, size=size.tiny, color=color.new(color.red, 50), location=location.abovebar)
+
+// Дивергенции
+plotshape(bullDiv and useStochDiv, title="Bull Div", style=shape.triangleup, size=size.small, color=color.green, location=location.belowbar)
+plotshape(bearDiv and useStochDiv, title="Bear Div", style=shape.triangledown, size=size.small, color=color.red, location=location.abovebar)
+
+// Сигналы
+plotshape(longCondition, title="LONG Signal", style=shape.labelup, size=size.normal, color=color.green, text="BUY", textcolor=color.white)
+plotshape(shortCondition, title="SHORT Signal", style=shape.labeldown, size=size.normal, color=color.red, text="SELL", textcolor=color.white)
+
+// Стопы и цели (для текущих позиций)
+plot(strategy.position_size > 0 ? longStopPrice : na, title="Long SL", color=color.red, style=plot.style_linebr)
+plot(strategy.position_size > 0 ? longTarget : na, title="Long TP", color=color.green, style=plot.style_linebr)
+plot(strategy.position_size < 0 ? shortStopPrice : na, title="Short SL", color=color.green, style=plot.style_linebr)
+plot(strategy.position_size < 0 ? shortTarget : na, title="Short TP", color=color.red, style=plot.style_linebr)
+
+// EMA
+plot(useTrendFilter ? ema : na, title="Trend EMA", color=color.orange, linewidth=2)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ИНФОРМАЦИЯ НА ГРАФИКЕ
+// ══════════════════════════════════════════════════════════════════════════════
+
+var table infoTable = table.new(position.top_right, 2, 8, bgcolor=color.black, frame_color=color.gray, frame_width=1)
+
+if barstate.islast
+    table.cell(infoTable, 0, 0, "📊 SI Smart Flow", text_color=color.white, text_size=size.normal)
+    table.cell(infoTable, 1, 0, "", text_color=color.white)
+    
+    table.cell(infoTable, 0, 1, "Score Long:", text_color=color.green, text_size=size.small)
+    table.cell(infoTable, 1, 1, str.tostring(longScore), text_color=color.green, text_size=size.small)
+    
+    table.cell(infoTable, 0, 2, "Score Short:", text_color=color.red, text_size=size.small)
+    table.cell(infoTable, 1, 2, str.tostring(shortScore), text_color=color.red, text_size=size.small)
+    
+    table.cell(infoTable, 0, 3, "Позиция:", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 3, strategy.position_size > 0 ? "LONG 🟢" : strategy.position_size < 0 ? "SHORT 🔴" : "Нет", 
+         text_color=strategy.position_size != 0 ? color.yellow : color.gray, text_size=size.small)
+    
+    table.cell(infoTable, 0, 4, "P&L:", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 4, str.tostring(strategy.openprofit, "#.##"), 
+         text_color=strategy.openprofit > 0 ? color.green : strategy.openprofit < 0 ? color.red : color.gray, text_size=size.small)
+    
+    table.cell(infoTable, 0, 5, "Всего сделок:", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 5, str.tostring(strategy.closedtrades), text_color=color.white, text_size=size.small)
+    
+    table.cell(infoTable, 0, 6, "Win rate:", text_color=color.white, text_size=size.small)
+    winRate = strategy.closedtrades > 0 ? str.tostring(strategy.wintrades / strategy.closedtrades * 100, "#.##") + "%" : "N/A"
+    table.cell(infoTable, 1, 6, winRate, text_color=color.white, text_size=size.small)
+    
+    table.cell(infoTable, 0, 7, "Тренд:", text_color=color.white, text_size=size.small)
+    table.cell(infoTable, 1, 7, trendUp ? "ВВЕРХ 📈" : trendDown ? "ВНИЗ 📉" : "БОКОВИК", 
+         text_color=trendUp ? color.green : trendDown ? color.red : color.gray, text_size=size.small)

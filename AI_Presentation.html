@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Как ИИ работает — и что это меняет в вашей работе</title>
+<style>
+@page {
+  size: 297mm 210mm; /* A4 landscape */
+  margin: 0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #1a1a2e;
+  line-height: 1.5;
+}
+.slide {
+  width: 297mm;
+  height: 210mm;
+  padding: 40px 60px;
+  page-break-after: always;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.slide:last-child { page-break-after: auto; }
+
+/* Slide 1 - Title */
+.slide-1 {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: white;
+  justify-content: center;
+  text-align: center;
+}
+.slide-1 h1 {
+  font-size: 52px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  line-height: 1.2;
+}
+.slide-1 .subtitle {
+  font-size: 24px;
+  opacity: 0.85;
+  margin-bottom: 60px;
+}
+.slide-1 .audience {
+  font-size: 18px;
+  opacity: 0.7;
+  border-top: 1px solid rgba(255,255,255,0.2);
+  padding-top: 30px;
+  margin-top: 40px;
+}
+
+/* Regular slides */
+.slide-header {
+  border-bottom: 3px solid #e94560;
+  padding-bottom: 15px;
+  margin-bottom: 30px;
+}
+.slide-header h2 {
+  font-size: 36px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+.slide-header .slide-num {
+  font-size: 14px;
+  color: #e94560;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+
+.content {
+  flex: 1;
+  font-size: 18px;
+}
+.content h3 {
+  font-size: 24px;
+  color: #0f3460;
+  margin: 20px 0 12px;
+  font-weight: 600;
+}
+.content h3:first-child { margin-top: 0; }
+.content p {
+  margin-bottom: 14px;
+  color: #333;
+}
+.content ul {
+  margin: 10px 0 20px 25px;
+}
+.content li {
+  margin-bottom: 8px;
+}
+.content strong {
+  color: #0f3460;
+}
+
+/* Tables */
+.table-wrap {
+  margin: 20px 0;
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+th {
+  background: #1a1a2e;
+  color: white;
+  padding: 10px 14px;
+  text-align: left;
+  font-weight: 600;
+}
+td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #e0e0e0;
+}
+tr:nth-child(even) { background: #f8f9fa; }
+
+/* Code blocks */
+.code-block {
+  background: #f4f4f8;
+  border-left: 4px solid #e94560;
+  padding: 15px 20px;
+  margin: 15px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #1a1a2e;
+  border-radius: 0 6px 6px 0;
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+/* Two column layout */
+.two-col {
+  display: flex;
+  gap: 40px;
+}
+.two-col > div {
+  flex: 1;
+}
+
+/* Highlight box */
+.highlight-box {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+  border: 2px solid #e94560;
+  border-radius: 10px;
+  padding: 20px 25px;
+  margin: 20px 0;
+}
+.highlight-box h4 {
+  color: #e94560;
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+/* Checklist */
+.checklist {
+  list-style: none;
+  margin-left: 0 !important;
+}
+.checklist li {
+  position: relative;
+  padding-left: 32px;
+  margin-bottom: 10px;
+}
+.checklist li::before {
+  content: "☐";
+  position: absolute;
+  left: 0;
+  color: #e94560;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+/* Final slide */
+.slide-13 {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  justify-content: center;
+  text-align: center;
+}
+.slide-13 h2 {
+  font-size: 42px;
+  margin-bottom: 40px;
+  line-height: 1.3;
+}
+.slide-13 .final-text {
+  font-size: 22px;
+  opacity: 0.9;
+  max-width: 800px;
+  margin: 0 auto;
+}
+.slide-13 .final-text strong {
+  color: #e94560;
+}
+
+/* Footer */
+.slide-footer {
+  position: absolute;
+  bottom: 25px;
+  left: 60px;
+  right: 60px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #888;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+/* Badge */
+.badge {
+  display: inline-block;
+  background: #e94560;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: 8px;
+  margin-bottom: 5px;
+}
+.badge-green {
+  background: #00b894;
+}
+.badge-blue {
+  background: #0984e3;
+}
+
+/* Comparison cards */
+.comp-cards {
+  display: flex;
+  gap: 20px;
+  margin: 20px 0;
+}
+.comp-card {
+  flex: 1;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 20px;
+}
+.comp-card h4 {
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: #0f3460;
+}
+.comp-card.chat {
+  border-color: #00b894;
+  background: #f0fff4;
+}
+.comp-card.agent {
+  border-color: #e94560;
+  background: #fff5f5;
+}
+.comp-card.chat h4 { color: #00b894; }
+.comp-card.agent h4 { color: #e94560; }
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin: 20px 0;
+}
+.stat-card {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  border: 1px solid #e0e0e0;
+}
+.stat-card .num {
+  font-size: 36px;
+  font-weight: 700;
+  color: #e94560;
+  display: block;
+}
+.stat-card .label {
+  font-size: 14px;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* Timeline */
+.timeline {
+  display: flex;
+  gap: 15px;
+  margin: 25px 0;
+}
+.timeline-item {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 18px;
+  border-top: 4px solid #e94560;
+}
+.timeline-item h4 {
+  font-size: 16px;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+.timeline-item p {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1 -->
+<div class="slide slide-1">
+  <h1>Как ИИ работает<br>и что это меняет<br>в вашей работе</h1>
+  <div class="subtitle">Практическое введение для бухгалтеров, юристов,<br>продактов, логистов и коммерческого отдела</div>
+  <div class="audience">Бухгалтерия • Юристы • Продакты • Логисты • Коммерческий отдел</div>
+</div>
+
+<!-- SLIDE 2 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 02 / 13</div>
+    <h2>Что такое современный ИИ</h2>
+  </div>
+  <div class="content">
+    <p style="font-size: 22px; margin-bottom: 25px;"><strong>Это не робот, который думает за вас.</strong> Это супер-интеллектуальный помощник с доступом к огромному количеству знаний.</p>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="num">24/7</span>
+        <div class="label">Работает без выходных<br>и не устаёт</div>
+      </div>
+      <div class="stat-card">
+        <span class="num">100M+</span>
+        <div class="label">Страниц текстов<br>в памяти</div>
+      </div>
+      <div class="stat-card">
+        <span class="num">0.5 сек</span>
+        <div class="label">Среднее время<br>ответа</div>
+      </div>
+    </div>
+    
+    <div class="highlight-box">
+      <h4>Главная идея</h4>
+      <p>ИИ не заменяет человека — он берёт на себя <strong>рутину</strong>, чтобы у вас осталось время на то, что действительно важно: решения, переговоры, стратегию.</p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 3 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 03 / 13</div>
+    <h2>Чат vs Агент — критическая разница</h2>
+  </div>
+  <div class="content">
+    <div class="comp-cards">
+      <div class="comp-card chat">
+        <h4>🤖 Чат-бот</h4>
+        <p><strong>Вы спрашиваете → получаете ответ</strong></p>
+        <ul style="margin-top: 12px;">
+          <li>Пишет черновик документа</li>
+          <li>Объясняет сложное просто</li>
+          <li>Анализирует таблицу</li>
+          <li>Ищет информацию</li>
+        </ul>
+        <p style="margin-top: 15px; font-size: 16px;"><em>Как очень умный коллега, который всегда на связи</em></p>
+      </div>
+      <div class="comp-card agent">
+        <h4>🦾 Агент (как я — Илья)</h4>
+        <p><strong>Вы даёте задачу → он её выполняет</strong></p>
+        <ul style="margin-top: 12px;">
+          <li>Сам заходит в системы</li>
+          <li>Отправляет письма</li>
+          <li>Обновляет таблицы</li>
+          <li>Запускает рекламу</li>
+          <li>Анализирует данные из API</li>
+        </ul>
+        <p style="margin-top: 15px; font-size: 16px;"><em>Не советует — делает</em></p>
+      </div>
+    </div>
+    
+    <div class="code-block" style="margin-top: 25px;">
+<strong>Пример разницы:</strong>
+
+Чат:      «Какая у нас выручка в марте?» → вам дают инструкцию, где посмотреть
+Агент:    «Пришли отчёт по выручке за март» → сам заходит в Метрику/CRM, 
+          собирает данные, формирует PDF и присылает
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 4 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 04 / 13</div>
+    <h2>Карта инструментов</h2>
+  </div>
+  <div class="content">
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th style="width:22%">Инструмент</th>
+          <th style="width:30%">Что умеет</th>
+          <th style="width:15%">Цена</th>
+          <th style="width:33%">Особенность</th>
+        </tr>
+        <tr>
+          <td><strong>ChatGPT (GPT-4o)</strong></td>
+          <td>Всё: тексты, код, анализ, креатив</td>
+          <td><span class="badge">$20/мес</span></td>
+          <td>Лидер по универсальности</td>
+        </tr>
+        <tr>
+          <td><strong>Claude 3.5</strong></td>
+          <td>Длинные документы, юртексты</td>
+          <td><span class="badge">$20/мес</span></td>
+          <td>Лучше всех с большими файлами (до 200 стр.)</td>
+        </tr>
+        <tr>
+          <td><strong>Kimi K1.5</strong></td>
+          <td>Отличный русский, аналитика</td>
+          <td><span class="badge badge-green">Бесплатно</span></td>
+          <td>Лучшее соотношение цена/качество для РФ</td>
+        </tr>
+        <tr>
+          <td><strong>Gemini 2.0</strong></td>
+          <td>Google-интеграция, поиск</td>
+          <td><span class="badge badge-green">Бесплатно</span></td>
+          <td>Прямая связь с Gmail, Документами</td>
+        </tr>
+        <tr>
+          <td><strong>Perplexity</strong></td>
+          <td>Поиск с источниками</td>
+          <td><span class="badge">$20/мес</span></td>
+          <td>Всегда показывает, откуда информация</td>
+        </tr>
+        <tr>
+          <td><strong>DeepL</strong></td>
+          <td>Переводы</td>
+          <td><span class="badge badge-green">Бесплатно</span></td>
+          <td>Лучше Google Translate</td>
+        </tr>
+      </table>
+    </div>
+    
+    <div class="highlight-box">
+      <h4>Правило выбора</h4>
+      <p>
+        <span class="badge badge-blue">Документы</span> → Claude или Kimi &nbsp;&nbsp;
+        <span class="badge badge-blue">Поиск</span> → Perplexity &nbsp;&nbsp;
+        <span class="badge badge-blue">Google</span> → Gemini &nbsp;&nbsp;
+        <span class="badge badge-blue">Код</span> → ChatGPT или Claude
+      </p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 5 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 05 / 13</div>
+    <h2>Бухгалтерия</h2>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <h3>Что ИИ делает</h3>
+        <ul>
+          <li><strong>Сверка документов</strong> — счёт, накладная, акт. ИИ находит расхождения за минуты</li>
+          <li><strong>Проверка контрагентов</strong> — заходит на ФНС/Контур, проверяет риски</li>
+          <li><strong>Авто-заполнение</strong> — декларации, формы, отчётность</li>
+          <li><strong>Анализ отчётов</strong> — графики движения денег, прогноз кассовых разрывов</li>
+          <li><strong>Напоминания</strong> — «за 3 дня до сдачи НДС», «проверить авансовые 10-го»</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Экономия времени</h3>
+        <div class="stat-card" style="margin-bottom: 15px;">
+          <span class="num">2 часа → 15 мин</span>
+          <div class="label">Сверка трёх документов</div>
+        </div>
+        <div class="stat-card">
+          <span class="num">88%</span>
+          <div class="label">Экономия на рутинной сверке</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="code-block">
+ПРОМПТ: Проверь эти три документа на соответствие: счёт №145 от 12.03, 
+накладную №145/Н и акт выполненных работ. 
+Найди расхождения в суммах, количестве и реквизитах. 
+Выведи таблицу: что совпало / что не совпало / рекомендация.
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 6 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 06 / 13</div>
+    <h2>Юристы</h2>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <h3>Что ИИ делает</h3>
+        <ul>
+          <li><strong>Проверка договоров на риски</strong> — выделяет нестандартные условия, отсутствие штрафов, автопролонгацию</li>
+          <li><strong>Генерация документов</strong> — ДС, претензии, письма по шаблону</li>
+          <li><strong>Мониторинг законов</strong> — отслеживает изменения в 44-ФЗ, 223-ФЗ, НК</li>
+          <li><strong>Сравнение версий</strong> — показывает, что именно поменялось между редакциями</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Экономия времени</h3>
+        <div class="stat-card" style="margin-bottom: 15px;">
+          <span class="num">3 часа → 30 мин</span>
+          <div class="label">Проверка договора на риски</div>
+        </div>
+        <div class="stat-card">
+          <span class="num">83%</span>
+          <div class="label">Экономия на юридической экспертизе</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="code-block">
+ПРОМПТ: Проанализируй договор поставки во вложении. 
+Найди риски для нашей стороны (покупатель). 
+Оцени каждый пункт по шкале: низкий / средний / высокий риск. 
+Предложи альтернативную формулировку для опасных пунктов.
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 7 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 07 / 13</div>
+    <h2>Продакты и разработка витаминов</h2>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <h3>Что ИИ делает</h3>
+        <ul>
+          <li><strong>Анализ исследований</strong> — ищет свежие данные по ингредиентам, дозировкам</li>
+          <li><strong>Проверка совместимости</strong> — антагонисты, токсичные сочетания, рекомендуемые пропорции</li>
+          <li><strong>Генерация ТЗ</strong> — на упаковку, маркировку, УТП</li>
+          <li><strong>Анализ конкурентов</strong> — состав, цена, позиционирование, отзывы</li>
+          <li><strong>Контент</strong> — описания для маркетплейсов, посты, ответы на вопросы</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Экономия времени</h3>
+        <div class="stat-card" style="margin-bottom: 15px;">
+          <span class="num">4 часа → 20 мин</span>
+          <div class="label">Анализ 5 конкурентов</div>
+        </div>
+        <div class="stat-card">
+          <span class="num">92%</span>
+          <div class="label">Экономия на аналитике рынка</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="code-block">
+ПРОМПТ: Составь сравнительную таблицу составов БАДов для сна 
+от 5 конкурентов (популярные на Ozon). 
+Для каждого: состав, дозировка, цена, ключевое обещание. 
+Выдели 3 слабых места конкурентов, которые мы можем использовать.
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 8 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 08 / 13</div>
+    <h2>Логисты</h2>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <h3>Что ИИ делает</h3>
+        <ul>
+          <li><strong>Оптимизация маршрутов</strong> — 12 точек с учётом пробок и временных окон</li>
+          <li><strong>Прогнозирование запасов</strong> — прогноз на квартал с учётом сезонности</li>
+          <li><strong>Анализ задержек</strong> — какой поставщик срывает сроки, сколько это стоит</li>
+          <li><strong>Авто-заполнение</strong> — CMR, декларации с правильными кодами ТН ВЭД</li>
+          <li><strong>Коммуникация</strong> — шаблонные письма перевозчикам, претензии</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Экономия времени</h3>
+        <div class="stat-card" style="margin-bottom: 15px;">
+          <span class="num">2 часа → 10 мин</span>
+          <div class="label">Прогноз запасов и расчёт</div>
+        </div>
+        <div class="stat-card">
+          <span class="num">92%</span>
+          <div class="label">Экономия на аналитике поставок</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="code-block">
+ПРОМПТ: Проанализируй таблицу поставок за Q1–Q2 2024. 
+Найди закономерности в задержках: по поставщикам, типу товара, месяцам. 
+Рассчитай финансовые потери от простоя. 
+Предложи 3 меры для улучшения.
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 9 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 09 / 13</div>
+    <h2>Коммерческий отдел</h2>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <h3>Что ИИ делает</h3>
+        <ul>
+          <li><strong>Анализ рынка</strong> — тренды, каналы, что работает в нише</li>
+          <li><strong>Генерация КП</strong> — коммерческие предложения под конкретного клиента</li>
+          <li><strong>Обработка писем</strong> — классификация лидов, черновики ответов</li>
+          <li><strong>CRM-аналитика</strong> — воронка, где теряем клиентов, кто лучше конвертирует</li>
+          <li><strong>Прогноз продаж</strong> — на основе истории, сезонности, маркетинг-календаря</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Экономия времени</h3>
+        <div class="stat-card" style="margin-bottom: 15px;">
+          <span class="num">1.5 часа → 15 мин</span>
+          <div class="label">Подготовка КП</div>
+        </div>
+        <div class="stat-card">
+          <span class="num">83%</span>
+          <div class="label">Экономия на коммерческих документах</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="code-block">
+ПРОМПТ: Подготовь анализ конкурентов spare skin на маркетплейсах. 
+Кто топ-10 по продажам в категории "коллаген"? 
+Их цена, состав, УТП, отзывы. 
+Выдели 3 слабых места конкурентов, которые мы можем использовать.
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 10 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 10 / 13</div>
+    <h2>Кейсы и цифры</h2>
+  </div>
+  <div class="content">
+    <h3>Реальная экономия времени</h3>
+    
+    <div class="table-wrap">
+      <table>
+        <tr>
+          <th>Задача</th>
+          <th>Без ИИ</th>
+          <th>С ИИ</th>
+          <th>Экономия</th>
+        </tr>
+        <tr>
+          <td>Сверка трёх документов</td>
+          <td>2 часа</td>
+          <td>15 мин</td>
+          <td><strong style="color:#e94560">88%</strong></td>
+        </tr>
+        <tr>
+          <td>Проверка договора</td>
+          <td>3 часа</td>
+          <td>30 мин</td>
+          <td><strong style="color:#e94560">83%</strong></td>
+        </tr>
+        <tr>
+          <td>Анализ конкурентов (5 шт.)</td>
+          <td>4 часа</td>
+          <td>20 мин</td>
+          <td><strong style="color:#e94560">92%</strong></td>
+        </tr>
+        <tr>
+          <td>Подготовка КП</td>
+          <td>1.5 часа</td>
+          <td>15 мин</td>
+          <td><strong style="color:#e94560">83%</strong></td>
+        </tr>
+        <tr>
+          <td>Прогноз запасов</td>
+          <td>2 часа</td>
+          <td>10 мин</td>
+          <td><strong style="color:#e94560">92%</strong></td>
+        </tr>
+        <tr>
+          <td>Генерация претензии</td>
+          <td>1 час</td>
+          <td>10 мин</td>
+          <td><strong style="color:#e94560">83%</strong></td>
+        </tr>
+      </table>
+    </div>
+    
+    <div class="highlight-box" style="margin-top: 25px;">
+      <h4>Итого</h4>
+      <p style="font-size: 20px;">ИИ высвобождает <strong>10–15 часов в неделю</strong> на одного сотрудника для задач, которые требуют именно человека: переговоры, решения, стратегия.</p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 11 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 11 / 13</div>
+    <h2>План внедрения</h2>
+  </div>
+  <div class="content">
+    <div class="timeline">
+      <div class="timeline-item">
+        <h4>Неделя 1</h4>
+        <p><strong>Разведка</strong><br>Создать аккаунты ChatGPT / Claude / Kimi. Протестировать на 1–2 реальных задачах. Зафиксировать время «до» и «после».</p>
+      </div>
+      <div class="timeline-item">
+        <h4>Недели 2–3</h4>
+        <p><strong>Пилот</strong><br>3 конкретные задачи на ИИ в каждом отделе. Настроить шаблоны промптов. Назначить «эксперта по ИИ».</p>
+      </div>
+      <div class="timeline-item">
+        <h4>Неделя 4</h4>
+        <p><strong>Масштабирование</strong><br>Обмен опытом между отделами. Фиксация экономии времени. Подключение платных версий при необходимости.</p>
+      </div>
+      <div class="timeline-item">
+        <h4>Месяц 2</h4>
+        <p><strong>Автоматизация</strong><br>Настройка агентов для повторяющихся процессов. Интеграция с CRM, 1С, почтой. Мониторинг эффективности.</p>
+      </div>
+    </div>
+    
+    <div class="highlight-box">
+      <h4>Бюджет</h4>
+      <p>
+        <span class="badge badge-green">Бесплатно</span> Kimi, Gemini, Perplexity (базовый) — для старта хватит<br>
+        <span class="badge">$20/мес</span> ChatGPT Plus или Claude Pro — для активных пользователей<br>
+        <span class="badge">$40–60/мес</span> Корпоративная подписка — когда масштабируетесь
+      </p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 12 -->
+<div class="slide">
+  <div class="slide-header">
+    <div class="slide-num">Слайд 12 / 13</div>
+    <h2>Безопасность</h2>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <h3>✅ Можно</h3>
+        <ul>
+          <li>Обезличенные данные (без ФИО, ИНН, телефонов)</li>
+          <li>Общие описания процессов и политик</li>
+          <li>Открытые документы: ТЗ, маркетинг, шаблоны</li>
+          <li>Анализ рынка и конкурентов</li>
+          <li>Генерация текстов с вымышленными примерами</li>
+        </ul>
+      </div>
+      <div>
+        <h3>❌ Нельзя в публичные ИИ</h3>
+        <ul>
+          <li>Персональные данные сотрудников и клиентов</li>
+          <li>Коммерческая тайна (себестоимость, маржа, поставщики)</li>
+          <li>Доступы к банк-клиенту, CRM, 1С</li>
+          <li>Подписанные договоры с реальными реквизитами</li>
+          <li>Информация о контрагентах без их согласия</li>
+        </ul>
+      </div>
+    </div>
+    
+    <div class="highlight-box" style="margin-top: 20px;">
+      <h4>Решение для конфиденциальных задач</h4>
+      <p>
+        <span class="badge badge-blue">Локальные модели</span> (Llama, Mistral на вашем сервере)<br>
+        <span class="badge badge-blue">Корпоративные подписки</span> с NDA и изоляцией данных<br>
+        <span class="badge badge-blue">Правило:</span> если сомневаетесь — замените реальные данные на вымышленные (Иванов → Петров, ООО "Ромашка" → ООО "Пример")
+      </p>
+    </div>
+  </div>
+  <div class="slide-footer">
+    <span>Доклад для сотрудников компании</span>
+    <span>2024</span>
+  </div>
+</div>
+
+<!-- SLIDE 13 -->
+<div class="slide slide-13">
+  <h2>ИИ — это не про замену людей</h2>
+  <div class="final-text">
+    <p>Это про то, чтобы:</p>
+    <p style="margin: 20px 0;">
+      <strong>Бухгалтер</strong> проверял 10 документов вместо 3<br>
+      <strong>Юрист</strong> закрывал 2 сделки вместо 1<br>
+      <strong>Продакт</strong> запускал 3 продукта вместо 1<br>
+      <strong>Логист</strong> обслуживал 15 клиентов вместо 8<br>
+      <strong>Коммерческий</strong> закрывал сделки быстрее
+    </p>
+    <p style="font-size: 28px; margin-top: 40px;"><strong style="color:#e94560">ИИ берёт рутину. Человек берёт решения.</strong></p>
+  </div>
+</div>
+
+</body>
+</html>

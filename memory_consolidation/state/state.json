@@ -1,0 +1,29 @@
+{
+  "stm": {
+    "count": 26,
+    "last_ts": "2026-04-28T19:40:57.122056",
+    "last_sessions": 14,
+    "last_messages": 299,
+    "last_chars": 29665
+  },
+  "diary": {
+    "count": 37,
+    "last_ts": "2026-04-29T03:33:28.399471",
+    "last_day": 19,
+    "last_sessions": 1,
+    "last_messages": 16,
+    "last_filename": "day19-2026-04-29-flexbox_and_pride.md",
+    "last_latency_s": 7.2,
+    "last_skip": "conversation_hash_unchanged"
+  },
+  "compact": {
+    "count": 37,
+    "last_ts": "2026-04-29T03:33:46.960735",
+    "last_invoke": 14,
+    "last_sessions": 14,
+    "last_messages": 324,
+    "last_latency_s": 18.1,
+    "last_model": "k2p5",
+    "last_skip": "stm_hash_unchanged"
+  }
+}

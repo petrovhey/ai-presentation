@@ -1,0 +1,3177 @@
+// ==UserScript==
+// @name		MP Manager WB Cluster Auto Strategy Setter
+// @description		Автоматическая установка стратегии рекламной кампании на основе статистики
+// @version		1.8.161
+// @match		https://*.app.mpmgr.ru/*
+// @icon		https://app.mpmgr.ru/favicon.ico
+// @grant		GM.getValue
+// @grant		GM.setValue
+// @grant		GM.deleteValue
+// @grant		GM.openInTab
+// @grant		GM.setClipboard
+// ==/UserScript==
+(function() {
+    'use strict';
+
+    console.log('MP Manager Auto Strategy Setter загружен');
+
+    // Константы
+    const STRATEGY_CODE = 'eyJjYW1wYWlnblR5cGUiOiJTZWFyY2hDYXRhbG9nIiwidmVyc2lvbiI6MiwiZGF0YSI6eyJzdGF0ZSI6IkVuYWJsZWQiLCJtb2RlIjp7InR5cGUiOiJQb3NpdGlvbiIsInBhdXNlVHlwZSI6IlJlc3VtZSJ9LCJzdHJhdGVneSI6eyJ0eXBlIjoiQ2FtcGFpZ25TdGF0cyIsIm1vZGUiOiJQbGFjZSIsImJpZE1vZGUiOiJDb3N0UGVyQ2xpY2siLCJjYW1wYWlnblN0YXRzIjp7Im1heFByaWNlIjo2MCwibWluUHJpY2UiOjEsInBsYXRmb3JtcyI6W10sImludGVydmFsIjoiV2VlayIsInJ1bGVzIjpbeyJ0eXBlIjoiQ29zdFBlckFkZGVkVG9DYXJ0IiwibW9kZSI6IlZhbHVlIiwidmFsdWUiOiIifV19fSwicGxhY2VTdHJhdGVneSI6eyJ0eXBlIjoiS2V5d29yZHMiLCJrZXl3b3JkcyI6eyJrZXl3b3JkcyI6W119fSwiaXNDbHVzdGVyIjpmYWxzZX19';
+    const CLUSTER_STRATEGY_CODE = 'eyJjYW1wYWlnblR5cGUiOiJTZWFyY2hDYXRhbG9nIiwidmVyc2lvbiI6MiwiZGF0YSI6eyJzdGF0ZSI6IkVuYWJsZWQiLCJtb2RlIjp7InR5cGUiOiJQb3NpdGlvbiIsInBhdXNlVHlwZSI6IlJlc3VtZSJ9LCJzdHJhdGVneSI6eyJ0eXBlIjoiQ2FtcGFpZ25TdGF0cyIsIm1vZGUiOiJQbGFjZSIsImJpZE1vZGUiOiJDb3N0UGVyQ2xpY2siLCJjYW1wYWlnblN0YXRzIjp7Im1heFByaWNlIjo2MCwibWluUHJpY2UiOjEsInBsYXRmb3JtcyI6W10sImludGVydmFsIjoiV2VlayIsInJ1bGVzIjpbeyJ0eXBlIjoiQ29zdFBlckFkZGVkVG9DYXJ0IiwibW9kZSI6IlZhbHVlIiwidmFsdWUiOiIifV19fSwicGxhY2VTdHJhdGVneSI6eyJ0eXBlIjoiS2V5d29yZHMiLCJrZXl3b3JkcyI6eyJrZXl3b3JkcyI6W119fSwiaXNDbHVzdGVyIjp0cnVlfX0=';
+    
+    // Стратегия для удержания места (обычная)
+    const HOLD_POSITION_STRATEGY_CODE = 'eyJjYW1wYWlnblR5cGUiOiJTZWFyY2hDYXRhbG9nIiwidmVyc2lvbiI6MiwiZGF0YSI6eyJzdGF0ZSI6IkVuYWJsZWQiLCJtb2RlIjp7InR5cGUiOiJQb3NpdGlvbiIsInBhdXNlVHlwZSI6IlJlc3VtZSJ9LCJzdHJhdGVneSI6eyJ0eXBlIjoiQ2FtcGFpZ25TdGF0cyIsIm1vZGUiOiJQbGFjZSIsImJpZE1vZGUiOiJDb3N0UGVyQ2xpY2siLCJjYW1wYWlnblN0YXRzIjp7Im1heFByaWNlIjo2MCwibWluUHJpY2UiOjEsInBsYXRmb3JtcyI6W10sImludGVydmFsIjoiV2VlayIsInJ1bGVzIjpbeyJ0eXBlIjoiQ29zdFBlckFkZGVkVG9DYXJ0IiwibW9kZSI6IlZhbHVlIiwidmFsdWUiOiIifV19fSwicGxhY2VTdHJhdGVneSI6eyJ0eXBlIjoiS2V5d29yZHMiLCJrZXl3b3JkcyI6eyJrZXl3b3JkcyI6W119fSwiaXNDbHVzdGVyIjp0cnVlfX0=';
+    // Стратегия для удержания места (кластерная)
+    const HOLD_POSITION_CLUSTER_STRATEGY_CODE = 'eyJjYW1wYWlnblR5cGUiOiJTZWFyY2hDYXRhbG9nIiwidmVyc2lvbiI6MiwiZGF0YSI6eyJzdGF0ZSI6IkVuYWJsZWQiLCJtb2RlIjp7InR5cGUiOiJQb3NpdGlvbiIsInBhdXNlVHlwZSI6IlJlc3VtZSJ9LCJzdHJhdGVneSI6eyJ0eXBlIjoiQ2FtcGFpZ25TdGF0cyIsIm1vZGUiOiJQbGFjZSIsImJpZE1vZGUiOiJDb3N0UGVyQ2xpY2siLCJjYW1wYWlnblN0YXRzIjp7Im1heFByaWNlIjo2MCwibWluUHJpY2UiOjEsInBsYXRmb3JtcyI6W10sImludGVydmFsIjoiV2VlayIsInJ1bGVzIjpbeyJ0eXBlIjoiQ29zdFBlckFkZGVkVG9DYXJ0IiwibW9kZSI6IlZhbHVlIiwidmFsdWUiOiIifV19fSwicGxhY2VTdHJhdGVneSI6eyJ0eXBlIjoiS2V5d29yZHMiLCJrZXl3b3JkcyI6eyJrZXl3b3JkcyI6W119fSwiaXNDbHVzdGVyIjp0cnVlfX0=';
+    // Стратегия для удержания места по умолчанию
+    const DEFAULT_HOLD_POSITION_STRATEGY_CODE = 'eyJjYW1wYWlnblR5cGUiOiJTZWFyY2hDYXRhbG9nIiwidmVyc2lvbiI6MiwiZGF0YSI6eyJzdGF0ZSI6IkVuYWJsZWQiLCJtb2RlIjp7InR5cGUiOiJQb3NpdGlvbiIsInBhdXNlVHlwZSI6IlJlc3VtZSJ9LCJzdHJhdGVneSI6eyJ0eXBlIjoiQ2FtcGFpZ25TdGF0cyIsIm1vZGUiOiJQbGFjZSIsImJpZE1vZGUiOiJDb3N0UGVyQ2xpY2siLCJjbHVzdGVyU3RhdHMiOnsibWF4QmlkIjo4MDAwLCJtaW5CaWQiOjQwMCwiaW50ZXJ2YWwiOiJUaHJlZURheXMiLCJydWxlcyI6W3sidHlwZSI6IkF2ZXJhZ2VQb3NpdGlvbiIsIm1vZGUiOiJWYWx1ZSIsInZhbHVlIjoyfSx7InR5cGUiOiJDb3N0UGVyQWRkZWRUb0NhcnQiLCJtb2RlIjoiQXZlcmFnZVZhbHVlIn1dfSwicGxhY2VTdHJhdGVneSI6eyJ0eXBlIjoiS2V5d29yZHMiLCJrZXl3b3JkcyI6eyJrZXl3b3JkcyI6W119fSwiaXNDbHVzdGVyIjpmYWxzZX19';
+
+    // Глобальные переменные для массовой обработки
+    let isBulkProcessing = false;
+    let bulkDesiredPercentage = 30;
+    let bulkPaused = false;
+
+    // Функция для получения сохраненных стратегий
+    async function getSavedStrategies() {
+        let strategies = await GM.getValue('saved_strategies', []);
+        
+        // Миграция: добавляем ID к стратегиям, у которых его нет
+        let needsMigration = false;
+        strategies = strategies.map((strategy, index) => {
+            if (!strategy.id) {
+                needsMigration = true;
+                return {
+                    ...strategy,
+                    id: 'strategy_migrated_' + Date.now() + '_' + index
+                };
+            }
+            return strategy;
+        });
+        
+        // Сохраняем обновленные стратегии, если была миграция
+        if (needsMigration) {
+            await GM.setValue('saved_strategies', strategies);
+            console.log('Миграция стратегий выполнена: добавлены ID');
+        }
+        
+        // Если нет сохраненных стратегий, добавляем стратегию по умолчанию
+        if (strategies.length === 0) {
+            return [{
+                id: 'default',
+                name: 'Стратегия по умолчанию',
+                data: STRATEGY_CODE
+            }];
+        }
+        return strategies;
+    }
+
+    // Функция для получения сохраненных стратегий для кластеров
+    async function getSavedClusterStrategies() {
+        let strategies = await GM.getValue('saved_cluster_strategies', []);
+        
+        // Миграция: добавляем ID к стратегиям, у которых его нет
+        let needsMigration = false;
+        strategies = strategies.map((strategy, index) => {
+            if (!strategy.id) {
+                needsMigration = true;
+                return {
+                    ...strategy,
+                    id: 'cluster_strategy_migrated_' + Date.now() + '_' + index
+                };
+            }
+            return strategy;
+        });
+        
+        // Сохраняем обновленные стратегии, если была миграция
+        if (needsMigration) {
+            await GM.setValue('saved_cluster_strategies', strategies);
+            console.log('Миграция кластерных стратегий выполнена: добавлены ID');
+        }
+        
+        // Если нет сохраненных стратегий, добавляем стратегию по умолчанию
+        if (strategies.length === 0) {
+            return [{
+                id: 'cluster_default',
+                name: 'Кластерная стратегия по умолчанию',
+                data: CLUSTER_STRATEGY_CODE
+            }];
+        }
+        return strategies;
+    }
+
+    // Функция для получения текущей стратегии
+    async function getCurrentStrategy() {
+        const currentId = await GM.getValue('current_strategy_id', 'default');
+        const strategies = await getSavedStrategies();
+        const strategy = strategies.find(s => s.id === currentId);
+        return strategy ? strategy.data : STRATEGY_CODE;
+    }
+
+    // Функция для получения текущей кластерной стратегии
+    async function getCurrentClusterStrategy() {
+        const currentId = await GM.getValue('current_cluster_strategy_id', 'cluster_default');
+        const strategies = await getSavedClusterStrategies();
+        const strategy = strategies.find(s => s.id === currentId);
+        return strategy ? strategy.data : CLUSTER_STRATEGY_CODE;
+    }
+
+    // Функция для получения стратегии удержания места
+    async function getHoldPositionStrategy() {
+        const holdPositionId = await GM.getValue('hold_position_strategy_id', null);
+        if (holdPositionId) {
+            const strategies = await getSavedStrategies();
+            const strategy = strategies.find(s => s.id === holdPositionId);
+            if (strategy) {
+                return strategy.data;
+            }
+        }
+        // Если стратегия удержания места не установлена, используем текущую выбранную стратегию
+        const currentId = await GM.getValue('current_strategy_id', 'default');
+        if (currentId !== 'default') {
+            const strategies = await getSavedStrategies();
+            const strategy = strategies.find(s => s.id === currentId);
+            if (strategy) {
+                console.log('⚠️ Стратегия удержания места не установлена, используем текущую стратегию:', strategy.name);
+                return strategy.data;
+            }
+        }
+        // Возвращаем специальную стратегию удержания места по умолчанию
+        return HOLD_POSITION_STRATEGY_CODE;
+    }
+
+    // Функция для получения кластерной стратегии удержания места
+    async function getHoldPositionClusterStrategy() {
+        const holdPositionId = await GM.getValue('hold_position_cluster_strategy_id', null);
+        if (holdPositionId) {
+            const strategies = await getSavedClusterStrategies();
+            const strategy = strategies.find(s => s.id === holdPositionId);
+            if (strategy) {
+                return strategy.data;
+            }
+        }
+        // Возвращаем специальную кластерную стратегию удержания места по умолчанию
+        return HOLD_POSITION_CLUSTER_STRATEGY_CODE;
+    }
+
+    // Функция для создания модального окна управления стратегиями
+    function createStrategyManagementModal() {
+        return new Promise(async (resolve) => {
+            // Создаем оверлей
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10001;
+            `;
+            
+            // Создаем модальное окно
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                padding: 24px;
+                min-width: 500px;
+                max-width: 600px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            `;
+            
+            // Заголовок
+            const title = document.createElement('h2');
+            title.textContent = 'Управление стратегиями';
+            title.style.cssText = `
+                margin: 0 0 20px 0;
+                font-size: 24px;
+                font-weight: bold;
+                color: #333;
+            `;
+            modal.appendChild(title);
+            
+            // Контейнер для списка стратегий
+            const listContainer = document.createElement('div');
+            listContainer.style.cssText = `
+                margin-bottom: 20px;
+                max-height: 300px;
+                overflow-y: auto;
+            `;
+            
+            // Функция для обновления списка
+            const updateList = async () => {
+                const currentStrategies = await getSavedStrategies();
+                const selectedStrategy = await GM.getValue('current_strategy_id', 'default');
+                const holdPositionStrategyId = await GM.getValue('hold_position_strategy_id', null);
+                listContainer.innerHTML = '';
+                
+                if (currentStrategies.length === 0) {
+                    const emptyMessage = document.createElement('p');
+                    emptyMessage.textContent = 'Нет сохраненных стратегий. Используется стратегия по умолчанию.';
+                    emptyMessage.style.cssText = `
+                        color: #666;
+                        font-style: italic;
+                        padding: 20px;
+                        text-align: center;
+                    `;
+                    listContainer.appendChild(emptyMessage);
+                } else {
+                    currentStrategies.forEach((strategy, index) => {
+                        const item = document.createElement('div');
+                        const isSelected = strategy.id === selectedStrategy;
+                        const isHoldPosition = strategy.id === holdPositionStrategyId;
+                        item.style.cssText = `
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 12px;
+                            margin-bottom: 8px;
+                            background: ${isSelected ? '#e3f2fd' : '#f5f5f5'};
+                            border-radius: 8px;
+                            border: ${isSelected ? '2px solid #2196f3' : '1px solid #ddd'};
+                        `;
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = strategy.name + (isSelected ? ' ✓' : '') + (isHoldPosition ? ' 📍' : '');
+                        nameSpan.style.cssText = `
+                            font-size: 16px;
+                            color: #333;
+                            flex: 1;
+                            font-weight: ${isSelected ? 'bold' : 'normal'};
+                        `;
+                        
+                        const buttonsContainer = document.createElement('div');
+                        buttonsContainer.style.cssText = `
+                            display: flex;
+                            gap: 8px;
+                        `;
+                        
+                        // Кнопка выбора
+                        if (!isSelected) {
+                            const selectBtn = document.createElement('button');
+                            selectBtn.textContent = '✓ Выбрать';
+                            selectBtn.style.cssText = `
+                                background: #2196f3;
+                                color: white;
+                                border: none;
+                                padding: 6px 12px;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 14px;
+                            `;
+                            selectBtn.onmouseover = () => selectBtn.style.background = '#1976d2';
+                            selectBtn.onmouseout = () => selectBtn.style.background = '#2196f3';
+                            selectBtn.onclick = async () => {
+                                await GM.setValue('current_strategy_id', strategy.id);
+                                console.log(`Выбрана стратегия: ${strategy.name} (ID: ${strategy.id})`);
+                                await updateList();
+                            };
+                            buttonsContainer.appendChild(selectBtn);
+                        }
+                        
+                        // Кнопка "Удержание места"
+                        const holdBtn = document.createElement('button');
+                        holdBtn.textContent = isHoldPosition ? '📍 Удалить' : '📍 Удержание';
+                        holdBtn.style.cssText = `
+                            background: ${isHoldPosition ? '#ff9800' : '#4caf50'};
+                            color: white;
+                            border: none;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        `;
+                        holdBtn.onmouseover = () => holdBtn.style.background = isHoldPosition ? '#f57c00' : '#45a049';
+                        holdBtn.onmouseout = () => holdBtn.style.background = isHoldPosition ? '#ff9800' : '#4caf50';
+                        holdBtn.onclick = async () => {
+                            if (isHoldPosition) {
+                                await GM.deleteValue('hold_position_strategy_id');
+                                console.log('Стратегия удержания места удалена');
+                            } else {
+                                await GM.setValue('hold_position_strategy_id', strategy.id);
+                                console.log(`Установлена стратегия удержания места: ${strategy.name} (ID: ${strategy.id})`);
+                            }
+                            await updateList();
+                        };
+                        buttonsContainer.appendChild(holdBtn);
+                        
+                        // Кнопка удаления
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = '🗑️';
+                        deleteBtn.style.cssText = `
+                            background: #f44336;
+                            color: white;
+                            border: none;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        `;
+                        deleteBtn.onmouseover = () => deleteBtn.style.background = '#d32f2f';
+                        deleteBtn.onmouseout = () => deleteBtn.style.background = '#f44336';
+                        deleteBtn.onclick = async () => {
+                            if (confirm(`Удалить стратегию "${strategy.name}"?`)) {
+                                currentStrategies.splice(index, 1);
+                                await GM.setValue('saved_strategies', currentStrategies);
+                                // Если удаляем выбранную стратегию, возвращаемся к дефолтной
+                                if (isSelected) {
+                                    await GM.setValue('current_strategy_id', 'default');
+                                }
+                                // Если удаляем стратегию удержания места, очищаем её
+                                if (isHoldPosition) {
+                                    await GM.deleteValue('hold_position_strategy_id');
+                                }
+                                await updateList();
+                            }
+                        };
+                        buttonsContainer.appendChild(deleteBtn);
+                        
+                        item.appendChild(nameSpan);
+                        item.appendChild(buttonsContainer);
+                        listContainer.appendChild(item);
+                    });
+                }
+            };
+            
+            await updateList();
+            modal.appendChild(listContainer);
+            
+            // Кнопка добавления стратегии
+            const addButton = document.createElement('button');
+            addButton.textContent = '➕ Добавить новую стратегию';
+            addButton.style.cssText = `
+                width: 100%;
+                background: #4caf50;
+                color: white;
+                border: none;
+                padding: 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: bold;
+                margin-bottom: 12px;
+            `;
+            addButton.onmouseover = () => addButton.style.background = '#45a049';
+            addButton.onmouseout = () => addButton.style.background = '#4caf50';
+            addButton.onclick = async () => {
+                const name = prompt('Введите название стратегии:');
+                if (!name) return;
+                
+                const data = prompt('Вставьте код стратегии (скопируйте из MP Manager):');
+                if (!data) return;
+                
+                const currentStrategies = await GM.getValue('saved_strategies', []);
+                const newId = 'strategy_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                currentStrategies.push({ id: newId, name, data });
+                await GM.setValue('saved_strategies', currentStrategies);
+                alert(`Стратегия "${name}" сохранена!`);
+                await updateList();
+            };
+            modal.appendChild(addButton);
+            
+            // Кнопка закрытия
+            const closeButton = document.createElement('button');
+            closeButton.textContent = 'Закрыть';
+            closeButton.style.cssText = `
+                width: 100%;
+                background: #666;
+                color: white;
+                border: none;
+                padding: 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+            `;
+            closeButton.onmouseover = () => closeButton.style.background = '#555';
+            closeButton.onmouseout = () => closeButton.style.background = '#666';
+            closeButton.onclick = () => {
+                document.body.removeChild(overlay);
+                resolve();
+            };
+            modal.appendChild(closeButton);
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            // Закрытие по клику на оверлей
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    document.body.removeChild(overlay);
+                    resolve();
+                }
+            };
+        });
+    }
+
+    // Функция для создания модального окна управления кластерными стратегиями
+    function createClusterStrategyManagementModal() {
+        return new Promise(async (resolve) => {
+            // Создаем оверлей
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10001;
+            `;
+            
+            // Создаем модальное окно
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                padding: 24px;
+                min-width: 500px;
+                max-width: 600px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            `;
+            
+            // Заголовок
+            const title = document.createElement('h2');
+            title.textContent = 'Управление стратегиями для кластеров';
+            title.style.cssText = `
+                margin: 0 0 20px 0;
+                font-size: 24px;
+                font-weight: bold;
+                color: #333;
+            `;
+            modal.appendChild(title);
+            
+            // Контейнер для списка стратегий
+            const listContainer = document.createElement('div');
+            listContainer.style.cssText = `
+                margin-bottom: 20px;
+                max-height: 300px;
+                overflow-y: auto;
+            `;
+            
+            // Функция для обновления списка
+            const updateList = async () => {
+                const currentStrategies = await getSavedClusterStrategies();
+                const selectedStrategy = await GM.getValue('current_cluster_strategy_id', 'cluster_default');
+                const holdPositionStrategyId = await GM.getValue('hold_position_cluster_strategy_id', null);
+                listContainer.innerHTML = '';
+                
+                if (currentStrategies.length === 0) {
+                    const emptyMessage = document.createElement('p');
+                    emptyMessage.textContent = 'Нет сохраненных кластерных стратегий. Используется стратегия по умолчанию.';
+                    emptyMessage.style.cssText = `
+                        color: #666;
+                        font-style: italic;
+                        padding: 20px;
+                        text-align: center;
+                    `;
+                    listContainer.appendChild(emptyMessage);
+                } else {
+                    currentStrategies.forEach((strategy, index) => {
+                        const item = document.createElement('div');
+                        const isSelected = strategy.id === selectedStrategy;
+                        const isHoldPosition = strategy.id === holdPositionStrategyId;
+                        item.style.cssText = `
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 12px;
+                            margin-bottom: 8px;
+                            background: ${isSelected ? '#e3f2fd' : '#f5f5f5'};
+                            border-radius: 8px;
+                            border: ${isSelected ? '2px solid #2196f3' : '1px solid #ddd'};
+                        `;
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = strategy.name + (isSelected ? ' ✓' : '') + (isHoldPosition ? ' 📍' : '');
+                        nameSpan.style.cssText = `
+                            font-size: 16px;
+                            color: #333;
+                            flex: 1;
+                            font-weight: ${isSelected ? 'bold' : 'normal'};
+                        `;
+                        
+                        const buttonsContainer = document.createElement('div');
+                        buttonsContainer.style.cssText = `
+                            display: flex;
+                            gap: 8px;
+                        `;
+                        
+                        // Кнопка выбора
+                        if (!isSelected) {
+                            const selectBtn = document.createElement('button');
+                            selectBtn.textContent = '✓ Выбрать';
+                            selectBtn.style.cssText = `
+                                background: #2196f3;
+                                color: white;
+                                border: none;
+                                padding: 6px 12px;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 14px;
+                            `;
+                            selectBtn.onmouseover = () => selectBtn.style.background = '#1976d2';
+                            selectBtn.onmouseout = () => selectBtn.style.background = '#2196f3';
+                            selectBtn.onclick = async () => {
+                                await GM.setValue('current_cluster_strategy_id', strategy.id);
+                                console.log(`Выбрана кластерная стратегия: ${strategy.name} (ID: ${strategy.id})`);
+                                await updateList();
+                            };
+                            buttonsContainer.appendChild(selectBtn);
+                        }
+                        
+                        // Кнопка "Удержание места"
+                        const holdBtn = document.createElement('button');
+                        holdBtn.textContent = isHoldPosition ? '📍 Удалить' : '📍 Удержание';
+                        holdBtn.style.cssText = `
+                            background: ${isHoldPosition ? '#ff9800' : '#4caf50'};
+                            color: white;
+                            border: none;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        `;
+                        holdBtn.onmouseover = () => holdBtn.style.background = isHoldPosition ? '#f57c00' : '#45a049';
+                        holdBtn.onmouseout = () => holdBtn.style.background = isHoldPosition ? '#ff9800' : '#4caf50';
+                        holdBtn.onclick = async () => {
+                            if (isHoldPosition) {
+                                await GM.deleteValue('hold_position_cluster_strategy_id');
+                                console.log('Кластерная стратегия удержания места удалена');
+                            } else {
+                                await GM.setValue('hold_position_cluster_strategy_id', strategy.id);
+                                console.log(`Установлена кластерная стратегия удержания места: ${strategy.name} (ID: ${strategy.id})`);
+                            }
+                            await updateList();
+                        };
+                        buttonsContainer.appendChild(holdBtn);
+                        
+                        // Кнопка удаления
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = '🗑️';
+                        deleteBtn.style.cssText = `
+                            background: #f44336;
+                            color: white;
+                            border: none;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        `;
+                        deleteBtn.onmouseover = () => deleteBtn.style.background = '#d32f2f';
+                        deleteBtn.onmouseout = () => deleteBtn.style.background = '#f44336';
+                        deleteBtn.onclick = async () => {
+                            if (confirm(`Удалить кластерную стратегию "${strategy.name}"?`)) {
+                                currentStrategies.splice(index, 1);
+                                await GM.setValue('saved_cluster_strategies', currentStrategies);
+                                // Если удаляем выбранную стратегию, возвращаемся к дефолтной
+                                if (isSelected) {
+                                    await GM.setValue('current_cluster_strategy_id', 'cluster_default');
+                                }
+                                // Если удаляем стратегию удержания места, очищаем её
+                                if (isHoldPosition) {
+                                    await GM.deleteValue('hold_position_cluster_strategy_id');
+                                }
+                                await updateList();
+                            }
+                        };
+                        buttonsContainer.appendChild(deleteBtn);
+                        
+                        item.appendChild(nameSpan);
+                        item.appendChild(buttonsContainer);
+                        listContainer.appendChild(item);
+                    });
+                }
+            };
+            
+            await updateList();
+            modal.appendChild(listContainer);
+            
+            // Кнопка добавления стратегии
+            const addButton = document.createElement('button');
+            addButton.textContent = '➕ Добавить новую кластерную стратегию';
+            addButton.style.cssText = `
+                width: 100%;
+                background: #4caf50;
+                color: white;
+                border: none;
+                padding: 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: bold;
+                margin-bottom: 12px;
+            `;
+            addButton.onmouseover = () => addButton.style.background = '#45a049';
+            addButton.onmouseout = () => addButton.style.background = '#4caf50';
+            addButton.onclick = async () => {
+                const name = prompt('Введите название кластерной стратегии:');
+                if (!name) return;
+                
+                const data = prompt('Вставьте код кластерной стратегии (скопируйте из MP Manager):');
+                if (!data) return;
+                
+                const currentStrategies = await GM.getValue('saved_cluster_strategies', []);
+                const newId = 'cluster_strategy_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                currentStrategies.push({ id: newId, name, data });
+                await GM.setValue('saved_cluster_strategies', currentStrategies);
+                alert(`Кластерная стратегия "${name}" сохранена!`);
+                await updateList();
+            };
+            modal.appendChild(addButton);
+            
+            // Кнопка закрытия
+            const closeButton = document.createElement('button');
+            closeButton.textContent = 'Закрыть';
+            closeButton.style.cssText = `
+                width: 100%;
+                background: #666;
+                color: white;
+                border: none;
+                padding: 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+            `;
+            closeButton.onmouseover = () => closeButton.style.background = '#555';
+            closeButton.onmouseout = () => closeButton.style.background = '#666';
+            closeButton.onclick = () => {
+                document.body.removeChild(overlay);
+                resolve();
+            };
+            modal.appendChild(closeButton);
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            // Закрытие по клику на оверлей
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    document.body.removeChild(overlay);
+                    resolve();
+                }
+            };
+        });
+    }
+
+    // Функция для создания модального окна управления стратегиями удержания места
+    function createHoldPositionStrategyManagementModal() {
+        return new Promise(async (resolve) => {
+            // Создаем оверлей
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10001;
+            `;
+            
+            // Создаем модальное окно
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                padding: 24px;
+                min-width: 500px;
+                max-width: 600px;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            `;
+            
+            // Заголовок
+            const title = document.createElement('h2');
+            title.textContent = 'Стратегии удержания места';
+            title.style.cssText = `
+                margin: 0 0 20px 0;
+                font-size: 24px;
+                font-weight: bold;
+                color: #333;
+            `;
+            modal.appendChild(title);
+            
+            // Описание
+            const description = document.createElement('p');
+            description.textContent = 'Здесь вы можете управлять стратегиями для обычных кампаний и кластеров, которые будут применяться при включенном чекбоксе "Удержание места".';
+            description.style.cssText = `
+                margin: 0 0 20px 0;
+                font-size: 14px;
+                color: #666;
+            `;
+            modal.appendChild(description);
+            
+            // Секция для обычных стратегий
+            const normalSection = document.createElement('div');
+            normalSection.style.cssText = `
+                margin-bottom: 30px;
+                padding: 15px;
+                background: #f9f9f9;
+                border-radius: 8px;
+            `;
+            
+            const normalTitle = document.createElement('h3');
+            normalTitle.textContent = '📋 Обычные кампании';
+            normalTitle.style.cssText = `
+                margin: 0 0 15px 0;
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+            `;
+            normalSection.appendChild(normalTitle);
+            
+            const normalListContainer = document.createElement('div');
+            normalListContainer.style.cssText = `
+                margin-bottom: 15px;
+                max-height: 200px;
+                overflow-y: auto;
+            `;
+            
+            // Функция для обновления списка обычных стратегий
+            const updateNormalList = async () => {
+                const strategies = await getSavedStrategies();
+                const holdPositionStrategyId = await GM.getValue('hold_position_strategy_id', null);
+                normalListContainer.innerHTML = '';
+                
+                if (strategies.length === 0) {
+                    const emptyMessage = document.createElement('p');
+                    emptyMessage.textContent = 'Нет сохраненных стратегий.';
+                    emptyMessage.style.cssText = `
+                        color: #666;
+                        font-style: italic;
+                        padding: 10px;
+                        text-align: center;
+                    `;
+                    normalListContainer.appendChild(emptyMessage);
+                } else {
+                    strategies.forEach((strategy) => {
+                        const item = document.createElement('div');
+                        const isHoldPosition = strategy.id === holdPositionStrategyId;
+                        item.style.cssText = `
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 10px;
+                            margin-bottom: 8px;
+                            background: ${isHoldPosition ? '#e8f5e9' : 'white'};
+                            border-radius: 6px;
+                            border: ${isHoldPosition ? '2px solid #4caf50' : '1px solid #ddd'};
+                        `;
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = strategy.name + (isHoldPosition ? ' ✓' : '');
+                        nameSpan.style.cssText = `
+                            font-size: 14px;
+                            color: #333;
+                            flex: 1;
+                            font-weight: ${isHoldPosition ? 'bold' : 'normal'};
+                        `;
+                        
+                        const selectBtn = document.createElement('button');
+                        selectBtn.textContent = isHoldPosition ? '✓ Выбрана' : 'Выбрать';
+                        selectBtn.disabled = isHoldPosition;
+                        selectBtn.style.cssText = `
+                            background: ${isHoldPosition ? '#4caf50' : '#2196f3'};
+                            color: white;
+                            border: none;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            cursor: ${isHoldPosition ? 'default' : 'pointer'};
+                            font-size: 13px;
+                            opacity: ${isHoldPosition ? '0.7' : '1'};
+                        `;
+                        if (!isHoldPosition) {
+                            selectBtn.onmouseover = () => selectBtn.style.background = '#1976d2';
+                            selectBtn.onmouseout = () => selectBtn.style.background = '#2196f3';
+                            selectBtn.onclick = async () => {
+                                await GM.setValue('hold_position_strategy_id', strategy.id);
+                                console.log(`Установлена стратегия удержания места: ${strategy.name}`);
+                                await updateNormalList();
+                            };
+                        }
+                        
+                        item.appendChild(nameSpan);
+                        item.appendChild(selectBtn);
+                        normalListContainer.appendChild(item);
+                    });
+                }
+            };
+            
+            await updateNormalList();
+            normalSection.appendChild(normalListContainer);
+            
+            const normalResetBtn = document.createElement('button');
+            normalResetBtn.textContent = '🔄 Сбросить на стандартную';
+            normalResetBtn.style.cssText = `
+                width: 100%;
+                background: #ff9800;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+            `;
+            normalResetBtn.onmouseover = () => normalResetBtn.style.background = '#f57c00';
+            normalResetBtn.onmouseout = () => normalResetBtn.style.background = '#ff9800';
+            normalResetBtn.onclick = async () => {
+                await GM.deleteValue('hold_position_strategy_id');
+                console.log('Стратегия удержания места сброшена на стандартную');
+                await updateNormalList();
+            };
+            normalSection.appendChild(normalResetBtn);
+            
+            modal.appendChild(normalSection);
+            
+            // Секция для кластерных стратегий
+            const clusterSection = document.createElement('div');
+            clusterSection.style.cssText = `
+                margin-bottom: 20px;
+                padding: 15px;
+                background: #f9f9f9;
+                border-radius: 8px;
+            `;
+            
+            const clusterTitle = document.createElement('h3');
+            clusterTitle.textContent = '🎯 Кластеры';
+            clusterTitle.style.cssText = `
+                margin: 0 0 15px 0;
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+            `;
+            clusterSection.appendChild(clusterTitle);
+            
+            const clusterListContainer = document.createElement('div');
+            clusterListContainer.style.cssText = `
+                margin-bottom: 15px;
+                max-height: 200px;
+                overflow-y: auto;
+            `;
+            
+            // Функция для обновления списка кластерных стратегий
+            const updateClusterList = async () => {
+                const strategies = await getSavedClusterStrategies();
+                const holdPositionStrategyId = await GM.getValue('hold_position_cluster_strategy_id', null);
+                clusterListContainer.innerHTML = '';
+                
+                if (strategies.length === 0) {
+                    const emptyMessage = document.createElement('p');
+                    emptyMessage.textContent = 'Нет сохраненных кластерных стратегий.';
+                    emptyMessage.style.cssText = `
+                        color: #666;
+                        font-style: italic;
+                        padding: 10px;
+                        text-align: center;
+                    `;
+                    clusterListContainer.appendChild(emptyMessage);
+                } else {
+                    strategies.forEach((strategy) => {
+                        const item = document.createElement('div');
+                        const isHoldPosition = strategy.id === holdPositionStrategyId;
+                        item.style.cssText = `
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 10px;
+                            margin-bottom: 8px;
+                            background: ${isHoldPosition ? '#e8f5e9' : 'white'};
+                            border-radius: 6px;
+                            border: ${isHoldPosition ? '2px solid #4caf50' : '1px solid #ddd'};
+                        `;
+                        
+                        const nameSpan = document.createElement('span');
+                        nameSpan.textContent = strategy.name + (isHoldPosition ? ' ✓' : '');
+                        nameSpan.style.cssText = `
+                            font-size: 14px;
+                            color: #333;
+                            flex: 1;
+                            font-weight: ${isHoldPosition ? 'bold' : 'normal'};
+                        `;
+                        
+                        const selectBtn = document.createElement('button');
+                        selectBtn.textContent = isHoldPosition ? '✓ Выбрана' : 'Выбрать';
+                        selectBtn.disabled = isHoldPosition;
+                        selectBtn.style.cssText = `
+                            background: ${isHoldPosition ? '#4caf50' : '#2196f3'};
+                            color: white;
+                            border: none;
+                            padding: 6px 12px;
+                            border-radius: 6px;
+                            cursor: ${isHoldPosition ? 'default' : 'pointer'};
+                            font-size: 13px;
+                            opacity: ${isHoldPosition ? '0.7' : '1'};
+                        `;
+                        if (!isHoldPosition) {
+                            selectBtn.onmouseover = () => selectBtn.style.background = '#1976d2';
+                            selectBtn.onmouseout = () => selectBtn.style.background = '#2196f3';
+                            selectBtn.onclick = async () => {
+                                await GM.setValue('hold_position_cluster_strategy_id', strategy.id);
+                                console.log(`Установлена кластерная стратегия удержания места: ${strategy.name}`);
+                                await updateClusterList();
+                            };
+                        }
+                        
+                        item.appendChild(nameSpan);
+                        item.appendChild(selectBtn);
+                        clusterListContainer.appendChild(item);
+                    });
+                }
+            };
+            
+            await updateClusterList();
+            clusterSection.appendChild(clusterListContainer);
+            
+            const clusterResetBtn = document.createElement('button');
+            clusterResetBtn.textContent = '🔄 Сбросить на стандартную';
+            clusterResetBtn.style.cssText = `
+                width: 100%;
+                background: #ff9800;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+            `;
+            clusterResetBtn.onmouseover = () => clusterResetBtn.style.background = '#f57c00';
+            clusterResetBtn.onmouseout = () => clusterResetBtn.style.background = '#ff9800';
+            clusterResetBtn.onclick = async () => {
+                await GM.deleteValue('hold_position_cluster_strategy_id');
+                console.log('Кластерная стратегия удержания места сброшена на стандартную');
+                await updateClusterList();
+            };
+            clusterSection.appendChild(clusterResetBtn);
+            
+            modal.appendChild(clusterSection);
+            
+            // Секция для настройки фильтра
+            const filterSection = document.createElement('div');
+            filterSection.style.cssText = `
+                margin-bottom: 20px;
+                padding: 15px;
+                background: #f9f9f9;
+                border-radius: 8px;
+            `;
+
+            const filterTitle = document.createElement('h3');
+            filterTitle.textContent = '📊 Фильтр "Среднее место в выдаче"';
+            filterTitle.style.cssText = `
+                margin: 0 0 10px 0;
+                font-size: 18px;
+                font-weight: bold;
+                color: #333;
+            `;
+            filterSection.appendChild(filterTitle);
+
+            const filterDesc = document.createElement('p');
+            filterDesc.textContent = 'Кластеры с позицией в этом диапазоне получат стратегию удержания места.';
+            filterDesc.style.cssText = `
+                margin: 0 0 12px 0;
+                font-size: 13px;
+                color: #666;
+            `;
+            filterSection.appendChild(filterDesc);
+
+            const filterRow = document.createElement('div');
+            filterRow.style.cssText = 'display: flex; gap: 12px; align-items: center;';
+
+            // Поле "от"
+            const fromLabel = document.createElement('label');
+            fromLabel.style.cssText = 'display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #333; flex: 1;';
+            fromLabel.textContent = 'От';
+            const fromInput = document.createElement('input');
+            fromInput.type = 'number';
+            fromInput.id = 'hold-position-filter-from';
+            fromInput.min = '1';
+            fromInput.style.cssText = 'padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box;';
+            fromLabel.appendChild(fromInput);
+            filterRow.appendChild(fromLabel);
+
+            // Поле "до"
+            const toLabel = document.createElement('label');
+            toLabel.style.cssText = 'display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #333; flex: 1;';
+            toLabel.textContent = 'До';
+            const toInput = document.createElement('input');
+            toInput.type = 'number';
+            toInput.id = 'hold-position-filter-to';
+            toInput.min = '1';
+            toInput.style.cssText = 'padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 100%; box-sizing: border-box;';
+            toLabel.appendChild(toInput);
+            filterRow.appendChild(toLabel);
+
+            filterSection.appendChild(filterRow);
+
+            // Загружаем сохранённые значения
+            const savedFrom = await GM.getValue('holdPositionFilterFrom', 1);
+            const savedTo = await GM.getValue('holdPositionFilterTo', 4);
+            fromInput.value = savedFrom;
+            toInput.value = savedTo;
+
+            // Кнопка сохранения
+            const saveFilterBtn = document.createElement('button');
+            saveFilterBtn.textContent = '💾 Сохранить диапазон';
+            saveFilterBtn.style.cssText = `
+                width: 100%;
+                margin-top: 12px;
+                background: #2196f3;
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 600;
+            `;
+            saveFilterBtn.onmouseover = () => saveFilterBtn.style.background = '#1976d2';
+            saveFilterBtn.onmouseout = () => saveFilterBtn.style.background = '#2196f3';
+            saveFilterBtn.onclick = async () => {
+                const fromVal = parseInt(fromInput.value);
+                const toVal = parseInt(toInput.value);
+                if (!fromVal || !toVal || fromVal < 1 || toVal < fromVal) {
+                    alert('Введите корректный диапазон (от ≥ 1, до ≥ от)');
+                    return;
+                }
+                await GM.setValue('holdPositionFilterFrom', fromVal);
+                await GM.setValue('holdPositionFilterTo', toVal);
+                saveFilterBtn.textContent = '✅ Сохранено!';
+                setTimeout(() => { saveFilterBtn.textContent = '💾 Сохранить диапазон'; }, 2000);
+                console.log(`Сохранён диапазон фильтра: от ${fromVal} до ${toVal}`);
+            };
+            filterSection.appendChild(saveFilterBtn);
+
+            modal.appendChild(filterSection);
+
+            // Кнопка закрытия
+            const closeButton = document.createElement('button');
+            closeButton.textContent = 'Закрыть';
+            closeButton.style.cssText = `
+                width: 100%;
+                background: #666;
+                color: white;
+                border: none;
+                padding: 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 16px;
+            `;
+            closeButton.onmouseover = () => closeButton.style.background = '#555';
+            closeButton.onmouseout = () => closeButton.style.background = '#666';
+            closeButton.onclick = () => {
+                document.body.removeChild(overlay);
+                resolve();
+            };
+            modal.appendChild(closeButton);
+            
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            
+            // Закрытие по клику на оверлей
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    document.body.removeChild(overlay);
+                    resolve();
+                }
+            };
+        });
+    }
+
+    // Функция для создания UI
+    function createUI() {
+        console.log('Создание UI панели');
+        
+        // Проверяем, есть ли сохраненный ДРР для массовой обработки
+        GM.getValue('bulkProcessingDRR', null).then(savedDRR => {
+            if (savedDRR !== null) {
+                console.log(`Найден сохраненный ДРР для массовой обработки: ${savedDRR}`);
+                // Автоматически запускаем стратегию с сохраненным ДРР
+                setTimeout(async () => {
+                    const input = document.getElementById('desired-percentage');
+                    if (input) {
+                        input.value = savedDRR;
+                        
+                        // Восстанавливаем состояние чекбоксов из сохраненных настроек
+                        const savedApplyToClusters = await GM.getValue('bulkApplyToClusters', true);
+                        const savedHoldPosition = await GM.getValue('bulkHoldPosition', true);
+                        
+                        const applyToClustersCheckbox = document.getElementById('apply-to-clusters');
+                        const holdPositionCheckbox = document.getElementById('hold-position');
+                        
+                        if (applyToClustersCheckbox) {
+                            applyToClustersCheckbox.checked = savedApplyToClusters;
+                            console.log(`Восстановлено состояние "Применить к кластерам": ${savedApplyToClusters}`);
+                        }
+                        
+                        if (holdPositionCheckbox) {
+                            holdPositionCheckbox.checked = savedHoldPosition;
+                            console.log(`Восстановлено состояние "Удержание места": ${savedHoldPosition}`);
+                        }
+                        
+                        // Запускаем стратегию автоматически
+                        runStrategy();
+                    }
+                }, 2000);
+            }
+        });
+        
+        const panel = document.createElement('div');
+        panel.id = 'auto-strategy-panel';
+        panel.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            min-width: 280px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: white;
+            transition: all 0.3s ease;
+            cursor: move;
+        `;
+
+        panel.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer;" id="panel-header">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">🚀 Авто-стратегия</h3>
+                <span id="toggle-icon" style="font-size: 18px;">▼</span>
+            </div>
+            
+            <div id="panel-content" style="display: none;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500;">
+                        Желаемый % рекламных расходов:
+                    </label>
+                    <input 
+                        type="number" 
+                        id="desired-percentage" 
+                        value="30" 
+                        min="1" 
+                        max="100" 
+                        step="0.1"
+                        style="
+                            width: 100%;
+                            padding: 10px;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            box-sizing: border-box;
+                            background: rgba(255, 255, 255, 0.95);
+                            color: #333;
+                            cursor: text;
+                        "
+                    />
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; font-weight: 500;">
+                        <input 
+                            type="checkbox" 
+                            id="apply-to-clusters" 
+                            checked
+                            style="
+                                margin-right: 8px;
+                                width: 18px;
+                                height: 18px;
+                                cursor: pointer;
+                            "
+                        />
+                        Применить стратегию к кластерам
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; font-weight: 500;">
+                        <input 
+                            type="checkbox" 
+                            id="hold-position" 
+                            checked
+                            style="
+                                margin-right: 8px;
+                                width: 18px;
+                                height: 18px;
+                                cursor: pointer;
+                            "
+                        />
+                        Удержание места
+                    </label>
+                </div>
+
+                <button 
+                    id="run-strategy-btn"
+                    style="
+                        width: 100%;
+                        padding: 12px;
+                        background: white;
+                        color: #667eea;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                        margin-bottom: 10px;
+                    "
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0, 0, 0, 0.2)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)';"
+                >
+                    Запустить
+                </button>
+
+                <button 
+                    id="manage-strategies-btn"
+                    style="
+                        width: 100%;
+                        padding: 10px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        border-radius: 8px;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        margin-bottom: 8px;
+                    "
+                    onmouseover="this.style.background='rgba(255, 255, 255, 0.3)';"
+                    onmouseout="this.style.background='rgba(255, 255, 255, 0.2)';"
+                >
+                    ⚙️ Управление стратегиями
+                </button>
+
+                <button 
+                    id="manage-cluster-strategies-btn"
+                    style="
+                        width: 100%;
+                        padding: 10px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        border-radius: 8px;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        margin-bottom: 8px;
+                    "
+                    onmouseover="this.style.background='rgba(255, 255, 255, 0.3)';"
+                    onmouseout="this.style.background='rgba(255, 255, 255, 0.2)';"
+                >
+                    🎯 Стратегии для кластеров
+                </button>
+
+                <button 
+                    id="manage-hold-position-strategies-btn"
+                    style="
+                        width: 100%;
+                        padding: 10px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        border-radius: 8px;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                    "
+                    onmouseover="this.style.background='rgba(255, 255, 255, 0.3)';"
+                    onmouseout="this.style.background='rgba(255, 255, 255, 0.2)';"
+                >
+                    📍 Стратегии удержания места
+                </button>
+
+                <div id="status-message" style="
+                    margin-top: 15px;
+                    padding: 10px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    background: rgba(255, 255, 255, 0.2);
+                    display: none;
+                "></div>
+            </div>
+        `;
+
+        document.body.appendChild(panel);
+        console.log('UI панель создана');
+
+        // Добавляем возможность перетаскивания
+        makeDraggable(panel);
+
+        // Добавляем обработчик клика на заголовок для разворачивания/сворачивания
+        document.getElementById('panel-header').addEventListener('click', () => {
+            const content = document.getElementById('panel-content');
+            const icon = document.getElementById('toggle-icon');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.textContent = '▲';
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▼';
+            }
+        });
+
+        // Добавляем обработчик клика на кнопку
+        document.getElementById('run-strategy-btn').addEventListener('click', runStrategy);
+        
+        // Добавляем обработчик для кнопки управления стратегиями
+        document.getElementById('manage-strategies-btn').addEventListener('click', async () => {
+            await createStrategyManagementModal();
+        });
+        
+        // Добавляем обработчик для кнопки управления кластерными стратегиями
+        document.getElementById('manage-cluster-strategies-btn').addEventListener('click', async () => {
+            await createClusterStrategyManagementModal();
+        });
+        
+        // Добавляем обработчик для кнопки управления стратегиями удержания места
+        document.getElementById('manage-hold-position-strategies-btn').addEventListener('click', async () => {
+            await createHoldPositionStrategyManagementModal();
+        });
+    }
+
+    // Функция для создания UI панели массового изменения
+    function createBulkUI() {
+        console.log('Создание UI панели массового изменения');
+        
+        const panel = document.createElement('div');
+        panel.id = 'bulk-strategy-panel';
+        panel.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            min-width: 300px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: white;
+            transition: all 0.3s ease;
+            cursor: move;
+        `;
+
+        panel.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer;" id="bulk-panel-header">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 600;">📦 Массовое изменение</h3>
+                <span id="bulk-toggle-icon" style="font-size: 18px;">▼</span>
+            </div>
+            
+            <div id="bulk-panel-content" style="display: none;">
+                <div style="margin-bottom: 15px;">
+                    <label style="display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500;">
+                        Желаемый % рекламных расходов (ДРР):
+                    </label>
+                    <input 
+                        type="number" 
+                        id="bulk-desired-percentage" 
+                        value="30" 
+                        min="1" 
+                        max="100" 
+                        step="0.1"
+                        style="
+                            width: 100%;
+                            padding: 10px;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 14px;
+                            box-sizing: border-box;
+                            background: rgba(255, 255, 255, 0.95);
+                            color: #333;
+                            cursor: text;
+                        "
+                    />
+                </div>
+
+                <div id="bulk-campaigns-info" style="
+                    margin-bottom: 15px;
+                    padding: 10px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    background: rgba(255, 255, 255, 0.2);
+                ">
+                    Найдено кампаний: <span id="campaigns-count">0</span>
+                </div>
+
+                <button 
+                    id="run-bulk-strategy-btn"
+                    style="
+                        width: 100%;
+                        padding: 12px;
+                        background: white;
+                        color: #f5576c;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                        margin-bottom: 10px;
+                    "
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(0, 0, 0, 0.2)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0, 0, 0, 0.15)';"
+                >
+                    Запустить
+                </button>
+
+                <button 
+                    id="bulk-manage-strategies-btn"
+                    style="
+                        width: 100%;
+                        padding: 10px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        border-radius: 8px;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        margin-bottom: 10px;
+                    "
+                    onmouseover="this.style.background='rgba(255, 255, 255, 0.3)';"
+                    onmouseout="this.style.background='rgba(255, 255, 255, 0.2)';"
+                >
+                    ⚙️ Управление стратегиями
+                </button>
+
+                <button 
+                    id="bulk-manage-cluster-strategies-btn"
+                    style="
+                        width: 100%;
+                        padding: 10px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        border-radius: 8px;
+                        font-size: 13px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        margin-bottom: 10px;
+                    "
+                    onmouseover="this.style.background='rgba(255, 255, 255, 0.3)';"
+                    onmouseout="this.style.background='rgba(255, 255, 255, 0.2)';"
+                >
+                    🎯 Стратегии для кластеров
+                </button>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; font-weight: 500;">
+                        <input 
+                            type="checkbox" 
+                            id="bulk-apply-to-clusters" 
+                            checked
+                            style="
+                                margin-right: 8px;
+                                width: 18px;
+                                height: 18px;
+                                cursor: pointer;
+                            "
+                        />
+                        Применить стратегию к кластерам
+                    </label>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; font-weight: 500;">
+                        <input 
+                            type="checkbox" 
+                            id="bulk-hold-position" 
+                            checked
+                            style="
+                                margin-right: 8px;
+                                width: 18px;
+                                height: 18px;
+                                cursor: pointer;
+                            "
+                        />
+                        Удержание места
+                    </label>
+                </div>
+
+                <div id="bulk-control-buttons" style="
+                    margin-top: 10px;
+                    display: none;
+                    gap: 10px;
+                ">
+                    <button 
+                        id="pause-bulk-btn"
+                        style="
+                            flex: 1;
+                            padding: 10px;
+                            background: rgba(255, 255, 255, 0.9);
+                            color: #f5576c;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 13px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        "
+                    >
+                        ⏏️ Пауза
+                    </button>
+                    <button 
+                        id="stop-bulk-btn"
+                        style="
+                            flex: 1;
+                            padding: 10px;
+                            background: rgba(255, 59, 48, 0.9);
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            font-size: 13px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        "
+                    >
+                        ⏹️ Стоп
+                    </button>
+                </div>
+
+                <div id="bulk-status-message" style="
+                    margin-top: 15px;
+                    padding: 10px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    background: rgba(255, 255, 255, 0.2);
+                    display: none;
+                "></div>
+
+                <div id="bulk-progress" style="
+                    margin-top: 15px;
+                    display: none;
+                ">
+                    <div style="margin-bottom: 5px; font-size: 12px;">
+                        Прогресс: <span id="bulk-progress-text">0/0</span>
+                    </div>
+                    <div style="
+                        width: 100%;
+                        height: 8px;
+                        background: rgba(255, 255, 255, 0.3);
+                        border-radius: 4px;
+                        overflow: hidden;
+                    ">
+                        <div id="bulk-progress-bar" style="
+                            width: 0%;
+                            height: 100%;
+                            background: white;
+                            transition: width 0.3s ease;
+                        "></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(panel);
+        console.log('UI панель массового изменения создана');
+
+        // Добавляем возможность перетаскивания
+        makeDraggable(panel);
+
+        // Подсчитываем количество кампаний
+        updateCampaignsCount();
+
+        // Добавляем обработчик клика на заголовок для разворачивания/сворачивания
+        document.getElementById('bulk-panel-header').addEventListener('click', () => {
+            const content = document.getElementById('bulk-panel-content');
+            const icon = document.getElementById('bulk-toggle-icon');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.textContent = '▲';
+            } else {
+                content.style.display = 'none';
+                icon.textContent = '▼';
+            }
+        });
+
+        // Добавляем обработчик клика на кнопку
+        document.getElementById('run-bulk-strategy-btn').addEventListener('click', runBulkStrategy);
+        
+        // Добавляем обработчик для кнопки управления стратегиями
+        document.getElementById('bulk-manage-strategies-btn').addEventListener('click', async () => {
+            await createStrategyManagementModal();
+        });
+        
+        // Добавляем обработчик для кнопки управления кластерными стратегиями
+        document.getElementById('bulk-manage-cluster-strategies-btn').addEventListener('click', async () => {
+            await createClusterStrategyManagementModal();
+        });
+        
+        // Добавляем обработчики для кнопок управления
+        document.getElementById('pause-bulk-btn').addEventListener('click', pauseBulkProcessing);
+        document.getElementById('stop-bulk-btn').addEventListener('click', stopBulkProcessing);
+        
+        // Запускаем мониторинг прогресса
+        startProgressMonitoring();
+    }
+    
+    // Функция для мониторинга прогресса массовой обработки
+    async function startProgressMonitoring() {
+        setInterval(async () => {
+            const currentIndex = await GM.getValue('bulkCurrentIndex', 0);
+            const totalCampaigns = await GM.getValue('bulkTotalCampaigns', 0);
+            
+            if (totalCampaigns > 0) {
+                updateBulkProgress(currentIndex, totalCampaigns);
+                
+                const progressDiv = document.getElementById('bulk-progress');
+                if (progressDiv && progressDiv.style.display === 'none') {
+                    progressDiv.style.display = 'block';
+                }
+                
+                const controlButtons = document.getElementById('bulk-control-buttons');
+                if (controlButtons && controlButtons.style.display === 'none' && currentIndex < totalCampaigns) {
+                    controlButtons.style.display = 'flex';
+                }
+            }
+        }, 1000); // Обновляем каждую секунду
+    }
+
+    // Функция для создания перетаскиваемого элемента
+    function makeDraggable(element) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        let isDragging = false;
+
+        element.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            // Не перетаскиваем, если кликнули на input, button или другие интерактивные элементы
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            e.preventDefault();
+            isDragging = true;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            if (!isDragging) return;
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            element.style.top = (element.offsetTop - pos2) + 'px';
+            element.style.left = (element.offsetLeft - pos1) + 'px';
+            element.style.right = 'auto';
+            element.style.bottom = 'auto';
+        }
+
+        function closeDragElement() {
+            isDragging = false;
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
+    // Функция для обновления количества кампаний
+    function updateCampaignsCount() {
+        const campaignLinks = document.querySelectorAll('a[href*="/campaigns/auto-campaigns/"][href*="/campaign"]');
+        const count = campaignLinks.length;
+        const countElement = document.getElementById('campaigns-count');
+        if (countElement) {
+            countElement.textContent = count;
+        }
+        console.log(`Найдено кампаний: ${count}`);
+    }
+
+    // Функция для показа статуса массовой обработки
+    function showBulkStatus(message, isError = false) {
+        const statusDiv = document.getElementById('bulk-status-message');
+        if (statusDiv) {
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = isError ? 'rgba(255, 59, 48, 0.9)' : 'rgba(52, 199, 89, 0.9)';
+            console.log(`Статус массовой обработки: ${message}`);
+        }
+    }
+
+    // Функция для обновления прогресса
+    function updateBulkProgress(current, total) {
+        const progressDiv = document.getElementById('bulk-progress');
+        const progressText = document.getElementById('bulk-progress-text');
+        const progressBar = document.getElementById('bulk-progress-bar');
+        
+        if (progressDiv && progressText && progressBar) {
+            progressDiv.style.display = 'block';
+            progressText.textContent = `${current}/${total}`;
+            const percentage = (current / total) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+    }
+
+    // Функция для прокрутки страницы вниз для загрузки всех кампаний
+    async function scrollToLoadAllCampaigns() {
+        console.log('Начинаем загрузку всех кампаний через прокрутку...');
+        
+        // Находим контейнер с прокруткой
+        const tableContainer = document.querySelector('.container.MuiBox-root.css-9hf803');
+        
+        if (!tableContainer) {
+            console.error('Контейнер таблицы не найден');
+            return [];
+        }
+        
+        console.log('Контейнер найден, начинаем прокрутку...');
+        console.log(`Высота контейнера: ${tableContainer.scrollHeight}px`);
+        
+        // Собираем уникальные ссылки во время прокрутки
+        const uniqueLinks = new Set();
+        
+        // Прокручиваем контейнер постепенно, чтобы загрузить все кампании
+        let previousLinksCount = 0;
+        let stableCount = 0;
+        const maxAttempts = 200; // Максимум попыток
+        let attempts = 0;
+        const scrollStep = 500; // Прокручиваем по 500px за раз
+        
+        while (attempts < maxAttempts) {
+            // Собираем ссылки на текущем шаге
+            const currentLinks = document.querySelectorAll('a[href*="/campaigns/auto-campaigns/"][href*="/campaign"]');
+            currentLinks.forEach(link => {
+                uniqueLinks.add(link.href);
+            });
+            
+            const currentCount = uniqueLinks.size;
+            console.log(`Загружено кампаний: ${currentCount}, прокрутка: ${tableContainer.scrollTop}/${tableContainer.scrollHeight}`);
+            
+            // Прокручиваем контейнер постепенно
+            tableContainer.scrollTop += scrollStep;
+            
+            // Ждем загрузки новых элементов
+            await wait(500);
+            
+            // Если количество не изменилось
+            if (currentCount === previousLinksCount) {
+                stableCount++;
+                // Если количество стабильно 5 раз подряд - значит все загружено
+                if (stableCount >= 5) {
+                    console.log('Все кампании загружены');
+                    break;
+                }
+            } else {
+                stableCount = 0;
+                previousLinksCount = currentCount;
+            }
+            
+            // Если достигли конца контейнера
+            if (tableContainer.scrollTop + tableContainer.clientHeight >= tableContainer.scrollHeight - 10) {
+                console.log('Достигнут конец контейнера');
+                // Ждем еще немного для загрузки последних элементов
+                await wait(1000);
+                
+                // Собираем последние ссылки
+                const finalLinks = document.querySelectorAll('a[href*="/campaigns/auto-campaigns/"][href*="/campaign"]');
+                finalLinks.forEach(link => {
+                    uniqueLinks.add(link.href);
+                });
+                
+                // Проверяем еще раз количество
+                if (uniqueLinks.size === previousLinksCount) {
+                    break;
+                }
+                previousLinksCount = uniqueLinks.size;
+            }
+            
+            attempts++;
+        }
+        
+        // Преобразуем Set в массив URL (НЕ прокручиваем обратно!)
+        const links = Array.from(uniqueLinks);
+        
+        console.log(`Найдено кампаний: ${links.length}`);
+        console.log(`Всего попыток прокрутки: ${attempts}`);
+        return links;
+    }
+
+    // Функция для массовой обработки кампаний
+    async function runBulkStrategy() {
+        if (isBulkProcessing) {
+            showBulkStatus('Обработка уже выполняется', true);
+            return;
+        }
+
+        try {
+            isBulkProcessing = true;
+            console.log('Начало массовой обработки кампаний');
+            
+            bulkDesiredPercentage = parseFloat(document.getElementById('bulk-desired-percentage').value);
+            if (!bulkDesiredPercentage || bulkDesiredPercentage <= 0) {
+                showBulkStatus('Ошибка: введите корректный процент', true);
+                isBulkProcessing = false;
+                return;
+            }
+            console.log(`Желаемый процент: ${bulkDesiredPercentage}%`);
+
+            // Сохраняем ДРР для автоматической обработки
+            await GM.setValue('bulkProcessingDRR', bulkDesiredPercentage);
+            console.log(`ДРР ${bulkDesiredPercentage} сохранен для массовой обработки`);
+            
+            // Сохраняем состояние чекбоксов
+            const applyToClustersCheckbox = document.getElementById('bulk-apply-to-clusters');
+            const holdPositionCheckbox = document.getElementById('bulk-hold-position');
+            
+            if (applyToClustersCheckbox) {
+                await GM.setValue('bulkApplyToClusters', applyToClustersCheckbox.checked);
+                console.log(`Сохранено состояние "Применить к кластерам": ${applyToClustersCheckbox.checked}`);
+            }
+            
+            if (holdPositionCheckbox) {
+                await GM.setValue('bulkHoldPosition', holdPositionCheckbox.checked);
+                console.log(`Сохранено состояние "Удержание места": ${holdPositionCheckbox.checked}`);
+            }
+
+            // Прокручиваем страницу для загрузки всех кампаний
+            const campaignLinks = await scrollToLoadAllCampaigns();
+            
+            if (campaignLinks.length === 0) {
+                showBulkStatus('Ошибка: кампании не найдены', true);
+                isBulkProcessing = false;
+                return;
+            }
+
+            console.log(`Найдено кампаний для обработки: ${campaignLinks.length}`);
+            showBulkStatus(`Начинаем обработку ${campaignLinks.length} кампаний...`);
+            updateBulkProgress(0, campaignLinks.length);
+
+            // Сохраняем список кампаний (массив URL), текущий индекс и общее количество
+            await GM.setValue('bulkCampaigns', JSON.stringify(campaignLinks));
+            await GM.setValue('bulkCurrentIndex', 0);
+            await GM.setValue('bulkTotalCampaigns', campaignLinks.length);
+
+            // Показываем кнопки управления
+            const controlButtons = document.getElementById('bulk-control-buttons');
+            if (controlButtons) {
+                controlButtons.style.display = 'flex';
+            }
+
+            // Открываем первую кампанию в новой вкладке через window.open
+            if (campaignLinks.length > 0) {
+                console.log(`Открытие кампании 1/${campaignLinks.length}: ${campaignLinks[0]}`);
+                window.open(campaignLinks[0], '_blank');
+            }
+
+        } catch (error) {
+            console.error('Ошибка при массовой обработке:', error);
+            showBulkStatus(`Ошибка: ${error.message}`, true);
+            isBulkProcessing = false;
+            await GM.deleteValue('bulkProcessingDRR');
+        }
+    }
+
+    // Функция для паузы массовой обработки
+    async function pauseBulkProcessing() {
+        bulkPaused = !bulkPaused;
+        const pauseBtn = document.getElementById('pause-bulk-btn');
+        
+        if (bulkPaused) {
+            await GM.setValue('bulkPaused', true);
+            pauseBtn.textContent = '▶️ Продолжить';
+            showBulkStatus('⏸️ Обработка приостановлена');
+            console.log('Массовая обработка приостановлена');
+        } else {
+            await GM.deleteValue('bulkPaused');
+            pauseBtn.textContent = '⏸️ Пауза';
+            showBulkStatus('▶️ Обработка возобновлена');
+            console.log('Массовая обработка возобновлена');
+            
+            // Продолжаем обработку - открываем следующую кампанию
+            const campaignsJson = await GM.getValue('bulkCampaigns', null);
+            const currentIndex = await GM.getValue('bulkCurrentIndex', 0);
+            const totalCampaigns = await GM.getValue('bulkTotalCampaigns', 0);
+            
+            if (campaignsJson) {
+                const campaigns = JSON.parse(campaignsJson);
+                const nextIndex = currentIndex + 1;
+                
+                console.log(`Обработано кампаний: ${nextIndex} из ${totalCampaigns}`);
+                
+                if (nextIndex < campaigns.length) {
+                    // Сохраняем новый индекс
+                    await GM.setValue('bulkCurrentIndex', nextIndex);
+                    
+                    // Открываем следующую кампанию в новой вкладке через window.open
+                    console.log(`Открываем кампанию ${nextIndex + 1}: ${campaigns[nextIndex]}`);
+                    const newTab = window.open(campaigns[nextIndex], '_blank');
+                    
+                    if (newTab) {
+                        // Закрываем текущую вкладку
+                        await wait(1000);
+                        window.close();
+                    } else {
+                        // Если блокировщик всплывающих окон, используем редирект
+                        console.log('Блокировщик всплывающих окон, используем редирект');
+                        window.location.href = campaigns[nextIndex];
+                    }
+                }
+            }
+        }
+    }
+
+    // Функция для остановки массовой обработки
+    async function stopBulkProcessing() {
+        await GM.deleteValue('bulkProcessingDRR');
+        await GM.deleteValue('bulkCampaigns');
+        await GM.deleteValue('bulkCurrentIndex');
+        await GM.deleteValue('bulkTotalCampaigns');
+        
+        showBulkStatus('⏹️ Обработка остановлена', true);
+        console.log('Массовая обработка остановлена');
+        
+        // Скрываем кнопки управления
+        const controlButtons = document.getElementById('bulk-control-buttons');
+        if (controlButtons) {
+            controlButtons.style.display = 'none';
+        }
+        
+        isBulkProcessing = false;
+        bulkPaused = false;
+    }
+
+    // Функция для показа статуса
+    function showStatus(message, isError = false) {
+        const statusDiv = document.getElementById('status-message');
+        if (statusDiv) {
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = isError ? 'rgba(255, 59, 48, 0.9)' : 'rgba(52, 199, 89, 0.9)';
+            console.log(`Статус: ${message}`);
+        }
+    }
+
+    // Функция для ожидания
+    function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Функция для парсинга числа из строки
+    function parseNumber(str) {
+        if (!str) return 0;
+        // Убираем все символы кроме цифр, точек и запятых
+        const cleaned = str.replace(/[^\d.,]/g, '').replace(/\s/g, '');
+        // Заменяем запятую на точку
+        const normalized = cleaned.replace(',', '.');
+        return parseFloat(normalized) || 0;
+    }
+
+    // Функция для парсинга процента
+    function parsePercentage(str) {
+        if (!str) return 0;
+        const cleaned = str.replace('%', '').replace(',', '.').trim();
+        return parseFloat(cleaned) || 0;
+    }
+
+    // Основная функция запуска стратегии
+    async function runStrategy() {
+        try {
+            console.log('Начало выполнения стратегии');
+            showStatus('Запуск процесса...');
+
+            const desiredPercentage = parseFloat(document.getElementById('desired-percentage').value);
+            if (!desiredPercentage || desiredPercentage <= 0) {
+                showStatus('Ошибка: введите корректный процент', true);
+                await handleStrategyError();
+                return;
+            }
+            console.log(`Желаемый процент: ${desiredPercentage}%`);
+
+            // Проверяем чекбоксы из обеих панелей
+            const holdPositionCheckbox = document.getElementById('hold-position');
+            const bulkHoldPositionCheckbox = document.getElementById('bulk-hold-position');
+            const shouldApplyHoldPosition = holdPositionCheckbox ? holdPositionCheckbox.checked : 
+                (bulkHoldPositionCheckbox ? bulkHoldPositionCheckbox.checked : false);
+
+            // Шаг 1: Кликаем на статистику
+            showStatus('Открытие статистики...');
+            const statsButton = document.querySelector('.css-amj7dw');
+            if (!statsButton) {
+                showStatus('Ошибка: кнопка статистики не найдена', true);
+                await handleStrategyError();
+                return;
+            }
+            statsButton.click();
+            console.log('Клик на статистику выполнен');
+            await wait(2000);
+
+            // Шаг 1.5: Выбираем режим "Товары"
+            showStatus('Выбор режима "Товары"...');
+            const modeLabels = Array.from(document.querySelectorAll('label'));
+            let modeInput = null;
+            
+            for (const label of modeLabels) {
+                if (label.textContent.trim() === 'Режим') {
+                    const inputId = label.getAttribute('for');
+                    if (inputId) {
+                        modeInput = document.getElementById(inputId);
+                        console.log(`Найдено поле Режим с id: ${inputId}`);
+                        break;
+                    }
+                }
+            }
+            
+            if (modeInput) {
+                modeInput.value = 'Товары';
+                const inputEvent = new Event('input', { bubbles: true });
+                const changeEvent = new Event('change', { bubbles: true });
+                modeInput.dispatchEvent(inputEvent);
+                modeInput.dispatchEvent(changeEvent);
+                
+                console.log('Установлено значение: Товары');
+                await wait(1000);
+                
+                const options = document.querySelectorAll('[role="option"]');
+                console.log(`Найдено опций: ${options.length}`);
+                
+                if (options.length > 0) {
+                    const tovarOption = Array.from(options).find(opt => opt.textContent.trim() === 'Товары');
+                    if (tovarOption) {
+                        tovarOption.click();
+                        console.log('Выбран режим "Товары"');
+                        await wait(1000);
+                    }
+                }
+            }
+
+            // Шаг 2: Извлекаем данные из статистики
+            showStatus('Извлечение данных...');
+            await wait(500);
+            
+            const stats = Array.from(document.querySelectorAll('.MuiTypography-caption.css-1et52kr'));
+            
+            let sumOrders = 0;
+            let ordersCount = 0;
+            let cartToOrderPercent = 0;
+
+            stats.forEach(el => {
+                const text = el.textContent.trim();
+                const valueElement = el.closest('.MuiBox-root')?.querySelector('.MuiTypography-h3 .MuiTypography-body1');
+                const value = valueElement ? valueElement.textContent.trim() : '';
+
+                console.log(`Найден показатель: ${text} = ${value}`);
+
+                if (text === 'Сумма заказов') {
+                    sumOrders = parseNumber(value);
+                    console.log(`Сумма заказов: ${sumOrders}`);
+                } else if (text === 'Заказов') {
+                    ordersCount = parseNumber(value);
+                    console.log(`Заказов: ${ordersCount}`);
+                } else if (text === 'Корзина → Заказ') {
+                    cartToOrderPercent = parsePercentage(value);
+                    console.log(`Корзина → Заказ: ${cartToOrderPercent}%`);
+                }
+            });
+
+            if (sumOrders === 0 || ordersCount === 0 || cartToOrderPercent === 0) {
+                showStatus('Ошибка: не удалось получить данные статистики', true);
+                console.error('Недостаточно данных:', { sumOrders, ordersCount, cartToOrderPercent });
+                await handleStrategyError();
+                return;
+            }
+
+            // Шаг 3: Вычисляем стоимость корзины
+            const cartCost = (sumOrders / ordersCount) * (desiredPercentage / 100) * (cartToOrderPercent / 100);
+            const cartCostRounded = Math.round(cartCost * 100) / 100;
+            console.log(`Расчет: (${sumOrders} / ${ordersCount}) * (${desiredPercentage} / 100) * (${cartToOrderPercent} / 100) = ${cartCostRounded}`);
+            showStatus(`Рассчитано: ${cartCostRounded} ₽`);
+
+            // Закрываем статистику
+            statsButton.click();
+            await wait(500);
+
+            // Шаг 4: Кликаем на "Вставить стратегию"
+            showStatus('Вставка стратегии...');
+            
+            // Ищем ВСЕ кнопки и фильтруем по тексту
+            const allButtonsForStrategy = document.querySelectorAll('button');
+            const mainInsertStrategyButtons = [];
+            
+            for (const btn of allButtonsForStrategy) {
+                if (btn.textContent.includes('Вставить стратегию')) {
+                    mainInsertStrategyButtons.push(btn);
+                }
+            }
+            
+            console.log(`Найдено кнопок "Вставить стратегию": ${mainInsertStrategyButtons.length}`);
+            
+            // Берем первую кнопку для основной стратегии
+            let insertButton = null;
+            if (mainInsertStrategyButtons.length >= 1) {
+                insertButton = mainInsertStrategyButtons[0];
+                console.log('Используем первую кнопку "Вставить стратегию" для основной стратегии');
+            }
+            
+            if (!insertButton) {
+                console.error('Кнопка "Вставить стратегию" не найдена');
+                showStatus('⚠️ Кнопка вставки стратегии не найдена', true);
+                await handleStrategyError();
+                return;
+            }
+
+            // Получаем текущую выбранную стратегию
+            let currentStrategyCode;
+            if (shouldApplyHoldPosition) {
+                currentStrategyCode = await getHoldPositionStrategy();
+                console.log('Используем стратегию удержания места, длина:', currentStrategyCode.length);
+            } else {
+                currentStrategyCode = await getCurrentStrategy();
+                console.log('Используем обычную стратегию, длина:', currentStrategyCode.length);
+            }
+            
+            // Копируем код стратегии в буфер обмена
+            console.log('Копируем стратегию в буфер обмена...');
+            
+            try {
+                await navigator.clipboard.writeText(currentStrategyCode);
+                console.log('✓ Стратегия скопирована через navigator.clipboard');
+            } catch {
+                console.log('navigator.clipboard не сработал, пробуем GM.setClipboard...');
+                try {
+                    await GM.setClipboard(currentStrategyCode);
+                    console.log('✓ Стратегия скопирована через GM.setClipboard');
+                } catch (e2) {
+                    console.error('Ошибка копирования через GM.setClipboard:', e2.message);
+                }
+            }
+            
+            await wait(500);
+
+            insertButton.click();
+            console.log('Клик на "Вставить стратегию" выполнен');
+            await wait(500);
+            
+            console.log('✓ Стратегия вставлена из буфера обмена');
+            await wait(500);
+
+            // Шаг 5: Находим поле "Желаемое значение" и вставляем результат
+            showStatus('Заполнение поля...');
+            
+            const inputLabels = Array.from(document.querySelectorAll('.MuiInputLabel-root'));
+            let targetInput = null;
+
+            for (const label of inputLabels) {
+                const labelText = label.textContent;
+                if (labelText.includes('Желаемое значение За корзину')) {
+                    const inputId = label.getAttribute('for');
+                    if (inputId) {
+                        targetInput = document.getElementById(inputId);
+                        console.log(`Найдено поле: ${labelText}, id: ${inputId}`);
+                        break;
+                    }
+                }
+            }
+
+            if (!targetInput) {
+                const inputs = document.querySelectorAll('input[type="number"]');
+                for (const input of inputs) {
+                    const name = input.getAttribute('name') || '';
+                    if (name.includes('rules') && name.includes('value')) {
+                        targetInput = input;
+                        break;
+                    }
+                }
+            }
+
+            if (!targetInput) {
+                showStatus('Ошибка: поле для ввода не найдено', true);
+                await handleStrategyError();
+                return;
+            }
+
+            targetInput.focus();
+            targetInput.value = cartCostRounded.toString();
+            
+            const inputEvent = new Event('input', { bubbles: true });
+            const changeEvent = new Event('change', { bubbles: true });
+            targetInput.dispatchEvent(inputEvent);
+            targetInput.dispatchEvent(changeEvent);
+            
+            console.log(`Значение ${cartCostRounded} установлено в поле ${targetInput.id}`);
+            await wait(500);
+
+            // Шаг 6: Нажимаем "Сохранить"
+            showStatus('Сохранение...');
+            const saveButtons = document.querySelectorAll('button');
+            let saveButton = null;
+
+            for (const btn of saveButtons) {
+                if (btn.textContent.trim() === 'Сохранить') {
+                    saveButton = btn;
+                    break;
+                }
+            }
+
+            if (!saveButton) {
+                showStatus('Ошибка: кнопка "Сохранить" не найдена', true);
+                await handleStrategyError();
+                return;
+            }
+
+            saveButton.click();
+            console.log('Клик на "Сохранить" выполнен');
+            await wait(500);
+
+            showStatus(`✅ Готово! Стоимость корзины: ${cartCostRounded} ₽`);
+            console.log('Стратегия успешно установлена');
+
+            // Шаг 7: Работа с кластерами
+            // Проверяем чекбоксы из обеих панелей
+            const applyToClusters = document.getElementById('apply-to-clusters');
+            const bulkApplyToClusters = document.getElementById('bulk-apply-to-clusters');
+            const shouldApplyToClusters = applyToClusters ? applyToClusters.checked : 
+                (bulkApplyToClusters ? bulkApplyToClusters.checked : true);
+            
+            if (!shouldApplyToClusters) {
+                console.log('Применение стратегии к кластерам отключено');
+                showStatus('✅ Готово! Кластеры пропущены');
+                
+                // Проверяем, идет ли массовая обработка
+                const savedDRR = await GM.getValue('bulkProcessingDRR', null);
+                if (savedDRR !== null) {
+                    console.log('Массовая обработка: переход к следующей кампании');
+                    
+                    // Обновляем счетчик ПЕРЕД переходом
+                    const currentIndex = await GM.getValue('bulkCurrentIndex', 0);
+                    const nextIndex = currentIndex + 1;
+                    await GM.setValue('bulkCurrentIndex', nextIndex);
+                    console.log(`✅ Кампания ${nextIndex} обработана успешно`);
+                    
+                    await wait(2000);
+                    
+                    const campaignsJson = await GM.getValue('bulkCampaigns', null);
+                    const totalCampaigns = await GM.getValue('bulkTotalCampaigns', 0);
+                    
+                    if (campaignsJson) {
+                        const campaigns = JSON.parse(campaignsJson);
+                        
+                        console.log(`Обработано кампаний: ${nextIndex} из ${totalCampaigns}`);
+                        
+                        if (nextIndex < campaigns.length) {
+                            console.log(`Переходим к кампании ${nextIndex + 1}: ${campaigns[nextIndex]}`);
+                            // Просто перенаправляем текущую вкладку на следующую кампанию
+                            window.location.href = campaigns[nextIndex];
+                        } else {
+                            console.log('Все кампании обработаны');
+                            await GM.deleteValue('bulkProcessingDRR');
+                            await GM.deleteValue('bulkCampaigns');
+                            await GM.deleteValue('bulkCurrentIndex');
+                            await GM.deleteValue('bulkTotalCampaigns');
+                            
+                            showStatus('✅ Все кампании обработаны!');
+                            alert('✅ Все кампании обработаны!');
+                        }
+                    }
+                }
+                return;
+            }
+
+            console.log('Применение стратегии к кластерам включено');
+            
+            // Переходим во вкладку "Кластеры"
+            const tabs = Array.from(document.querySelectorAll('button[role="tab"]'));
+            const clustersTab = tabs.find(tab => tab.textContent.trim() === 'Кластеры');
+            if (!clustersTab) {
+                console.error('Вкладка "Кластеры" не найдена');
+                showStatus('⚠️ Вкладка "Кластеры" не найдена', true);
+                return;
+            }
+
+            clustersTab.click();
+            console.log('Клик на "Кластеры" выполнен');
+            await wait(1000);
+            
+            // Ждем загрузки кластеров
+            let loadingAttempts = 0;
+            while (loadingAttempts < 10) {
+                const skeleton = document.querySelector('.MuiSkeleton-root');
+                if (!skeleton) {
+                    console.log('Кластеры загружены');
+                    break;
+                }
+                console.log(`Ожидание загрузки кластеров, попытка ${loadingAttempts + 1}`);
+                await wait(500);
+                loadingAttempts++;
+            }
+            
+            // СНАЧАЛА применяем обычную стратегию ко ВСЕМ кластерам
+            showStatus('Применение обычной стратегии ко всем кластерам...');
+            console.log('Шаг 1: Применяем обычную стратегию ко всем кластерам');
+            
+            // Выделяем отфильтрованные кластеры
+            showStatus('Выделение отфильтрованных кластеров...');
+            
+            // Находим правильный чекбокс для выделения всех кластеров
+            const selectAllCheckbox2 = document.querySelector('.css-9nib29 input.PrivateSwitchBase-input.css-j8yymo');
+            
+            if (!selectAllCheckbox2) {
+                console.error('Checkbox для выделения всех кластеров не найден');
+                return;
+            }
+
+            selectAllCheckbox2.click();
+            console.log('Клик на checkbox для выделения всех кластеров выполнен');
+            await wait(1000);
+            
+            // Открываем меню "Действия"
+            showStatus('Открытие меню действий...');
+            console.log('Ищем кнопку "Действия"...');
+            const actionsButton = document.querySelector('.css-1rll63h');
+            if (!actionsButton) {
+                console.error('Кнопка "Действия" не найдена');
+                showStatus('⚠️ Кнопка "Действия" не найдена', true);
+                return;
+            }
+
+            console.log('Кнопка "Действия" найдена, кликаем...');
+            actionsButton.click();
+            console.log('Клик на "Действия" выполнен');
+            await wait(300);
+            
+            // Кликаем на "Управление"
+            showStatus('Открытие управления...');
+            console.log('Ищем кнопку "Управление"...');
+            await wait(500);
+            const managementButton2Found = document.querySelector('.css-86fwf5');
+            console.log(`Кнопка "Управление" найдена: ${!!managementButton2Found}`);
+            if (!managementButton2Found) {
+                console.error('Кнопка "Управление" не найдена');
+                showStatus('⚠️ Кнопка "Управление" не найдена', true);
+                return;
+            }
+
+            console.log('Кликаем на кнопку "Управление"...');
+            managementButton2Found.click();
+            console.log('Клик на "Управление" выполнен');
+            await wait(300);
+            
+            // Кликаем на "Стратегия"
+            showStatus('Открытие стратегии кластеров...');
+            console.log('Ищем вкладку "Стратегия"...');
+            const strategyTabs2 = document.querySelectorAll('.css-euoluq');
+            console.log(`Найдено вкладок стратегии: ${strategyTabs2.length}`);
+            if (strategyTabs2.length < 3) {
+                // Попробуем найти по тексту
+                const strategyTabByText = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Стратегия' && b.offsetParent !== null);
+                if (strategyTabByText) {
+                    console.log('Найдена вкладка "Стратегия" по тексту, кликаем...');
+                    strategyTabByText.click();
+                } else {
+                    console.error('Вкладка "Стратегия" не найдена');
+                    showStatus('⚠️ Вкладка "Стратегия" не найдена', true);
+                    return;
+                }
+            } else {
+                console.log('Кликаем на третью вкладку "Стратегия"...');
+                strategyTabs2[2].click();
+            }
+            
+            console.log('Клик на "Стратегия" выполнен');
+            await wait(300);
+            
+            // Вставляем ОБЫЧНУЮ стратегию для всех кластеров
+            showStatus('Вставка обычной стратегии для всех кластеров...');
+            
+            // Ищем ВСЕ кнопки и фильтруем по тексту
+            const allButtonsForCluster = document.querySelectorAll('button');
+            const insertStrategyButtons = [];
+            
+            for (const btn of allButtonsForCluster) {
+                if (btn.textContent.includes('Вставить стратегию')) {
+                    insertStrategyButtons.push(btn);
+                }
+            }
+            
+            console.log(`Найдено кнопок "Вставить стратегию" для кластеров: ${insertStrategyButtons.length}`);
+            
+            // Берем вторую кнопку (индекс 1)
+            let clusterInsertButton = null;
+            if (insertStrategyButtons.length >= 2) {
+                clusterInsertButton = insertStrategyButtons[1];
+                console.log('Используем вторую кнопку "Вставить стратегию" для кластеров');
+            } else if (insertStrategyButtons.length === 1) {
+                clusterInsertButton = insertStrategyButtons[0];
+                console.log('Найдена только одна кнопка, используем её');
+            }
+            
+            if (!clusterInsertButton) {
+                console.error('Кнопка "Вставить стратегию" для кластеров не найдена');
+                return;
+            }
+
+            // Получаем ОБЫЧНУЮ кластерную стратегию
+            const currentClusterStrategyCode = await getCurrentClusterStrategy();
+            console.log('Используем обычную кластерную стратегию, длина:', currentClusterStrategyCode.length);
+            
+            // Копируем стратегию в буфер обмена
+            try {
+                await navigator.clipboard.writeText(currentClusterStrategyCode);
+                console.log('✓ Обычная кластерная стратегия скопирована');
+            } catch {
+                await GM.setClipboard(currentClusterStrategyCode);
+                console.log('✓ Обычная кластерная стратегия скопирована через GM');
+            }
+            
+            await wait(500);
+            
+            clusterInsertButton.click();
+            console.log('Клик на "Вставить стратегию" для всех кластеров выполнен');
+            await wait(1000);
+            
+            // Находим поле для ввода ставки
+            const clusterInputLabels = Array.from(document.querySelectorAll('.MuiInputLabel-root'));
+            let clusterTargetInput = null;
+        
+            // Ищем второй input с меткой "Желаемое значение За корзину"
+            let foundInputs2 = [];
+            for (const label of clusterInputLabels) {
+                const labelText = label.textContent.trim();
+                if (labelText.includes('Желаемое значение За корзину')) {
+                    const inputId = label.getAttribute('for');
+                    if (inputId) {
+                        const input = document.getElementById(inputId);
+                        if (input) {
+                            foundInputs2.push(input);
+                            console.log(`Найдено поле для кластеров: ${labelText}, id: ${inputId}`);
+                        }
+                    }
+                }
+            }
+        
+            // Берем второй найденный input (индекс 1)
+            if (foundInputs2.length >= 2) {
+                clusterTargetInput = foundInputs2[1];
+                console.log(`Используем второй input для кластеров: ${clusterTargetInput.id}`);
+            } else if (foundInputs2.length === 1) {
+                clusterTargetInput = foundInputs2[0];
+                console.log(`Найден только один input, используем его: ${clusterTargetInput.id}`);
+            }
+
+            if (clusterTargetInput) {
+                clusterTargetInput.focus();
+                clusterTargetInput.value = cartCostRounded.toString();
+                clusterTargetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                clusterTargetInput.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log(`Значение ${cartCostRounded} установлено для всех кластеров в поле ${clusterTargetInput.id}`);
+                await wait(500);
+            }
+            
+            // Нажимаем "Применить"
+            showStatus('Применение обычной стратегии ко всем кластерам...');
+            const clusterStrategyApplyButtons = document.querySelectorAll('.css-eqlbov');
+            if (clusterStrategyApplyButtons.length >= 2) {
+                clusterStrategyApplyButtons[1].click();
+                console.log('Клик на "Применить" обычную стратегию выполнен');
+                await wait(1000);
+                
+                // Закрываем модальное окно
+                const closeModalButtons = document.querySelectorAll('button[aria-label="Close"]');
+                if (closeModalButtons.length > 0) {
+                    closeModalButtons[closeModalButtons.length - 1].click();
+                    console.log('Модальное окно закрыто');
+                    await wait(1000); // Ждем после закрытия модального окна, выделение снимется автоматически
+                }
+            }
+            
+            // ЗАТЕМ, если включен чекбокс "Удержание места", применяем фильтры
+            if (shouldApplyHoldPosition) {
+                console.log('Шаг 2: Применяем фильтры и стратегию удержания места');
+                await applyHoldPositionToFilteredClusters(cartCostRounded);
+            }
+            
+            // Работаем с автофильтрами
+            await applyAutofilters();
+
+            showStatus(`✅ Полностью готово! Стоимость корзины: ${cartCostRounded} ₽`);
+
+            // Проверяем, идет ли массовая обработка
+            const savedDRR = await GM.getValue('bulkProcessingDRR', null);
+            if (savedDRR !== null) {
+                console.log('Массовая обработка: переход к следующей кампании');
+                
+                // Обновляем счетчик ПЕРЕД переходом
+                const currentIndex = await GM.getValue('bulkCurrentIndex', 0);
+                const nextIndex = currentIndex + 1;
+                await GM.setValue('bulkCurrentIndex', nextIndex);
+                console.log(`✅ Кампания ${nextIndex} обработана успешно`);
+                
+                await wait(2000);
+                
+                const campaignsJson = await GM.getValue('bulkCampaigns', null);
+                const totalCampaigns = await GM.getValue('bulkTotalCampaigns', 0);
+                
+                if (campaignsJson) {
+                    const campaigns = JSON.parse(campaignsJson);
+                    
+                    console.log(`Обработано кампаний: ${nextIndex} из ${totalCampaigns}`);
+                    
+                    if (nextIndex < campaigns.length) {
+                        console.log(`Переходим к кампании ${nextIndex + 1}: ${campaigns[nextIndex]}`);
+                        // Просто перенаправляем текущую вкладку на следующую кампанию
+                        window.location.href = campaigns[nextIndex];
+                    } else {
+                        console.log('Все кампании обработаны');
+                        await GM.deleteValue('bulkProcessingDRR');
+                        await GM.deleteValue('bulkCampaigns');
+                        await GM.deleteValue('bulkCurrentIndex');
+                        await GM.deleteValue('bulkTotalCampaigns');
+                        
+                        showStatus('✅ Все кампании обработаны!');
+                        alert('✅ Все кампании обработаны!');
+                    }
+                }
+            }
+
+        } catch (error) {
+            console.error('Ошибка при выполнении стратегии:', error);
+            showStatus(`Ошибка: ${error.message}`, true);
+            await handleStrategyError();
+        }
+    }
+
+    // Функция для применения стратегии удержания места к отфильтрованным кластерам
+    async function applyHoldPositionToFilteredClusters(cartCostRounded) {
+        showStatus('Настройка фильтра "Удержание места"...');
+        await wait(1500);
+        
+        // Выбираем дату "За 7 дней"
+        showStatus('Выбор даты "За 7 дней"...');
+        const clusterIntervalInput = document.querySelector('input[name="statsIntervalPicker"]');
+        
+        if (clusterIntervalInput) {
+            clusterIntervalInput.focus();
+            clusterIntervalInput.dispatchEvent(new Event('focusin', { bubbles: true }));
+            clusterIntervalInput.click();
+            console.log('Клик на поле интервала кластеров выполнен');
+            
+            await wait(2000);
+            
+            // Ищем кнопку "За 7 дней" по тексту
+            const sevenDaysBtn = Array.from(document.querySelectorAll('button.css-ghy8jd')).find(btn => btn.textContent.trim() === 'За 7 дней');
+            if (sevenDaysBtn) {
+                sevenDaysBtn.click();
+                console.log('Клик на "За 7 дней" выполнен');
+                await wait(1000);
+            } else {
+                console.error('Кнопка "За 7 дней" не найдена');
+            }
+            
+            // Ищем кнопку "Применить" по тексту среди .css-7wa720
+            const applyDateBtn = Array.from(document.querySelectorAll('button.css-7wa720')).find(btn => btn.textContent.trim() === 'Применить');
+            if (applyDateBtn) {
+                applyDateBtn.click();
+                console.log('Клик на "Применить" дату выполнен');
+                await wait(1500);
+            } else {
+                console.error('Кнопка "Применить" дату не найдена');
+            }
+        } else {
+            console.error('Поле интервала кластеров (statsIntervalPicker) не найдено');
+        }
+        
+        // Открываем фильтры
+        const filtersButton = document.querySelector('.css-a54mx2');
+        if (!filtersButton) {
+            console.error('Кнопка "Фильтры" не найдена');
+            return;
+        }
+
+        filtersButton.click();
+        console.log('Клик на "Фильтры" выполнен');
+        await wait(1500);
+        
+        // Добавляем фильтр
+        const allButtons = Array.from(document.querySelectorAll('button'));
+        const addFilterButton = allButtons.find(btn => btn.textContent.trim() === 'Добавить фильтр');
+        if (!addFilterButton) {
+            console.error('Кнопка "Добавить фильтр" не найдена');
+            return;
+        }
+
+        addFilterButton.click();
+        console.log('Клик на "Добавить фильтр" выполнен');
+        await wait(1500);
+        
+        // Выбираем "Среднее место в выдаче" по тексту
+        const filterOptionSpans = Array.from(document.querySelectorAll('span.MuiTypography-root.MuiTypography-body1.css-4hjyi9'));
+        const avgPositionOption = filterOptionSpans.find(span => span.textContent.trim() === 'Среднее место в выдаче');
+        if (!avgPositionOption) {
+            console.error('Опция "Среднее место в выдаче" не найдена');
+            return;
+        }
+
+        avgPositionOption.click();
+        console.log('Клик на "Среднее место в выдаче" выполнен');
+        await wait(1500);
+        
+        // Очищаем фильтр
+        const allInputsWithVse = document.querySelectorAll('input[value="Все"]');
+        let avgPositionInput = allInputsWithVse.length >= 2 ? allInputsWithVse[1] : allInputsWithVse[0];
+        
+        if (!avgPositionInput) {
+            console.error('Input "Среднее место в выдаче" не найден');
+            return;
+        }
+
+        const inputContainer = avgPositionInput.closest('.MuiInputBase-root');
+        const clearButton = inputContainer?.querySelector('button');
+        
+        if (!clearButton) {
+            console.error('Кнопка очистки не найдена');
+            return;
+        }
+
+        clearButton.click();
+        console.log('Клик на кнопку очистки выполнен');
+        await wait(1500);
+        
+        // Выбираем "Между"
+        const hiddenInputsForComparison = document.querySelectorAll('input.MuiSelect-nativeInput');
+        let comparisonContainer = null;
+        
+        for (const inp of hiddenInputsForComparison) {
+            const container = inp.closest('.MuiFormControl-root');
+            const label = container?.querySelector('label');
+            if (label && label.textContent.includes('Сравнение')) {
+                comparisonContainer = container;
+                break;
+            }
+        }
+        
+        if (!comparisonContainer) {
+            console.error('Контейнер "Сравнение" не найден');
+            return;
+        }
+
+        const arrowButton = comparisonContainer.querySelector('button');
+        if (!arrowButton) {
+            console.error('Кнопка со стрелкой не найдена');
+            return;
+        }
+
+        arrowButton.click();
+        console.log('Клик на кнопку со стрелкой выполнен');
+        await wait(1000);
+        
+        // Выбираем "Между"
+        const options = document.querySelectorAll('[role="option"]');
+        const betweenOption = Array.from(options).find(opt => opt.textContent.trim() === 'Между');
+        
+        if (!betweenOption) {
+            console.error('Опция "Между" не найдена');
+            return;
+        }
+
+        betweenOption.click();
+        console.log('Клик на "Между" выполнен');
+        await wait(1500);
+        
+        // Устанавливаем значения "от" и "до"
+        const allLabels = document.querySelectorAll('label');
+        let fromInput = null;
+        let toInput = null;
+        
+        for (const label of allLabels) {
+            const text = label.textContent.trim();
+            if (text === 'Значение от') {
+                const inputId = label.getAttribute('for');
+                if (inputId) {
+                    fromInput = document.getElementById(inputId);
+                }
+            } else if (text === 'Значение до') {
+                const inputId = label.getAttribute('for');
+                if (inputId) {
+                    toInput = document.getElementById(inputId);
+                }
+            }
+        }
+        
+        if (!fromInput || !toInput) {
+            console.error('Поля "от" и "до" не найдены');
+            return;
+        }
+
+        // Загружаем сохранённые значения диапазона фильтра
+        const filterFrom = await GM.getValue('holdPositionFilterFrom', 1);
+        const filterTo = await GM.getValue('holdPositionFilterTo', 4);
+        console.log(`Используем диапазон фильтра: от ${filterFrom} до ${filterTo}`);
+
+        // Устанавливаем "от"
+        fromInput.focus();
+        fromInput.value = String(filterFrom);
+        fromInput.dispatchEvent(new Event('input', { bubbles: true }));
+        fromInput.dispatchEvent(new Event('change', { bubbles: true }));
+        console.log(`Установлено значение "от" = ${filterFrom}`);
+        await wait(500);
+        
+        // Устанавливаем "до"
+        toInput.focus();
+        toInput.value = String(filterTo);
+        toInput.dispatchEvent(new Event('input', { bubbles: true }));
+        toInput.dispatchEvent(new Event('change', { bubbles: true }));
+        console.log(`Установлено значение "до" = ${filterTo}`);
+        await wait(1000);
+        
+        // Нажимаем "Применить" в попапе фильтра
+        showStatus('Применение фильтра...');
+        const filterPopupApplyButtons = Array.from(document.querySelectorAll('.css-eqlbov'));
+        const filterApplyBtn = filterPopupApplyButtons.find(btn => btn.textContent.trim() === 'Применить');
+        if (filterApplyBtn) {
+            filterApplyBtn.click();
+            console.log('Клик на "Применить" фильтр выполнен');
+            await wait(1500);
+        } else {
+            console.error('Кнопка "Применить" в попапе фильтра не найдена');
+        }
+        
+        // ⬇️⬇️⬇️ ИСПРАВЛЕНИЕ: ждём окончания загрузки таблицы после применения фильтра
+        showStatus('Ожидание загрузки кластеров после фильтра...');
+        let filterLoadingAttempts = 0;
+        while (filterLoadingAttempts < 15) {
+            const skeleton = document.querySelector('.MuiSkeleton-root');
+            if (!skeleton) {
+                console.log('Таблица кластеров загружена после фильтра');
+                break;
+            }
+            console.log(`Ожидание загрузки кластеров после фильтра, попытка ${filterLoadingAttempts + 1}`);
+            await wait(500);
+            filterLoadingAttempts++;
+        }
+        await wait(500); // дополнительная пауза на рендеринг
+        
+        // ⬇️⬇️⬇️ ИСПРАВЛЕНИЕ: универсальный селектор таблицы вместо жёсткого ID
+        const tableContainer = document.querySelector('[role="grid"]') || 
+                               document.querySelector('[id^="table-"][id$="-container"]') ||
+                               document.querySelector('table[class*="MuiTable-root"]')?.closest('[class*="container"]') ||
+                               document.querySelector('div[class*="MuiDataGrid-root"]');
+        
+        console.log('tableContainer найден:', !!tableContainer, ' | селектор:', 
+            tableContainer ? (tableContainer.getAttribute('role') || tableContainer.id || tableContainer.className?.slice(0, 50)) : 'null');
+        
+        const tbody = tableContainer ? tableContainer.querySelector('tbody') : null;
+        const clusterRows = tbody ? tbody.querySelectorAll('tr') : [];
+        
+        if (clusterRows.length === 0) {
+            console.log('⚠️ После фильтрации кластеров не найдено — пропускаем шаг удержания места');
+            showStatus('⚠️ Нет кластеров в диапазоне — нажимаем Сохранить');
+            
+            // Нажимаем "Сохранить" даже если нет подходящих кластеров
+            let saveButtonNoFilter = document.querySelector('button.css-tn31lt');
+            if (!saveButtonNoFilter) {
+                saveButtonNoFilter = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.trim() === 'Сохранить');
+            }
+            if (saveButtonNoFilter) {
+                saveButtonNoFilter.click();
+                console.log('Клик на "Сохранить" выполнен (нет кластеров в диапазоне)');
+                await wait(1000);
+                
+                const closeModalBtns = document.querySelectorAll('button[aria-label="Close"]');
+                if (closeModalBtns.length > 0) {
+                    closeModalBtns[closeModalBtns.length - 1].click();
+                    console.log('Модальное окно закрыто');
+                    await wait(1000);
+                }
+            } else {
+                console.error('Кнопка "Сохранить" не найдена при отсутствии кластеров');
+            }
+            return;
+        }
+        
+        console.log(`Найдено кластеров после фильтрации: ${clusterRows.length}`);
+        
+        // Выделяем отфильтрованные кластеры
+        const selectAllCheckbox2 = document.querySelector('.css-9nib29 input.PrivateSwitchBase-input.css-j8yymo');
+        
+        if (!selectAllCheckbox2) {
+            console.error('Checkbox для выделения всех кластеров не найден');
+            return;
+        }
+
+        selectAllCheckbox2.click();
+        console.log('Клик на checkbox для выделения всех кластеров выполнен');
+        await wait(1000);
+        
+        // Открываем меню "Действия"
+        showStatus('Открытие меню действий для отфильтрованных кластеров...');
+        const actionsButton2 = document.querySelector('.css-1rll63h');
+        if (!actionsButton2) {
+            console.error('Кнопка "Действия" не найдена');
+            return;
+        }
+
+        actionsButton2.click();
+        await wait(300);
+        
+        // Кликаем на "Управление"
+        showStatus('Открытие управления...');
+        console.log('Ищем кнопку "Управление"...');
+        await wait(500);
+        const managementButton2Found = document.querySelector('.css-86fwf5');
+        console.log(`Кнопка "Управление" найдена: ${!!managementButton2Found}`);
+        if (!managementButton2Found) {
+            console.error('Кнопка "Управление" не найдена');
+            showStatus('⚠️ Кнопка "Управление" не найдена', true);
+            return;
+        }
+
+        console.log('Кликаем на кнопку "Управление"...');
+        managementButton2Found.click();
+        console.log('Клик на "Управление" выполнен');
+        await wait(300);
+        
+        // Кликаем на "Стратегия"
+        showStatus('Открытие стратегии кластеров...');
+        console.log('Ищем вкладку "Стратегия"...');
+        const strategyTabs2 = document.querySelectorAll('.css-euoluq');
+        console.log(`Найдено вкладок стратегии: ${strategyTabs2.length}`);
+        if (strategyTabs2.length < 3) {
+            // Попробуем найти по тексту
+            const strategyTabByText = Array.from(document.querySelectorAll('button')).find(b => b.textContent.trim() === 'Стратегия' && b.offsetParent !== null);
+            if (strategyTabByText) {
+                console.log('Найдена вкладка "Стратегия" по тексту, кликаем...');
+                strategyTabByText.click();
+            } else {
+                console.error('Вкладка "Стратегия" не найдена');
+                showStatus('⚠️ Вкладка "Стратегия" не найдена', true);
+                return;
+            }
+        } else {
+            console.log('Кликаем на третью вкладку "Стратегия"...');
+            strategyTabs2[2].click();
+        }
+        
+        console.log('Клик на "Стратегия" выполнен');
+        await wait(300);
+        
+        // Вставляем стратегию УДЕРЖАНИЯ МЕСТА
+        showStatus('Вставка стратегии удержания места...');
+        
+        // Ищем ВСЕ кнопки и фильтруем по тексту
+        const allButtonsForHoldPosition = document.querySelectorAll('button');
+        const insertStrategyButtons2 = [];
+        
+        for (const btn of allButtonsForHoldPosition) {
+            if (btn.textContent.includes('Вставить стратегию')) {
+                insertStrategyButtons2.push(btn);
+            }
+        }
+        
+        console.log(`Найдено кнопок "Вставить стратегию" для удержания места: ${insertStrategyButtons2.length}`);
+        
+        // Берем вторую кнопку (индекс 1)
+        let clusterInsertButton2 = null;
+        if (insertStrategyButtons2.length >= 2) {
+            clusterInsertButton2 = insertStrategyButtons2[1];
+            console.log('Используем вторую кнопку "Вставить стратегию" для отфильтрованных кластеров');
+        } else if (insertStrategyButtons2.length === 1) {
+            clusterInsertButton2 = insertStrategyButtons2[0];
+            console.log('Найдена только одна кнопка, используем её');
+        }
+        
+        if (!clusterInsertButton2) {
+            console.error('Кнопка "Вставить стратегию" для отфильтрованных кластеров не найдена');
+            return;
+        }
+
+        // Получаем стратегию УДЕРЖАНИЯ МЕСТА
+        const holdPositionClusterStrategyCode = await getHoldPositionClusterStrategy();
+        console.log('Используем стратегию удержания места, длина:', holdPositionClusterStrategyCode.length);
+        
+        try {
+            await navigator.clipboard.writeText(holdPositionClusterStrategyCode);
+            console.log('✓ Стратегия удержания места скопирована');
+        } catch {
+            await GM.setClipboard(holdPositionClusterStrategyCode);
+            console.log('✓ Стратегия удержания места скопирована через GM');
+        }
+        
+        await wait(500);
+        
+        clusterInsertButton2.click();
+        console.log('Клик на "Вставить стратегию" удержания места выполнен');
+        await wait(1000);
+        
+        // Находим поле для ввода ставки
+        const clusterInputLabels2 = Array.from(document.querySelectorAll('.MuiInputLabel-root'));
+        let clusterTargetInput2 = null;
+        
+        // Ищем второй input с меткой "Желаемое значение За корзину"
+        let foundInputs2 = [];
+        for (const label of clusterInputLabels2) {
+            const labelText = label.textContent.trim();
+            if (labelText.includes('Желаемое значение За корзину')) {
+                const inputId = label.getAttribute('for');
+                if (inputId) {
+                    const input = document.getElementById(inputId);
+                    if (input) {
+                        foundInputs2.push(input);
+                        console.log(`Найдено поле для отфильтрованных кластеров: ${labelText}, id: ${inputId}`);
+                    }
+                }
+            }
+        }
+        
+        // Берем второй найденный input (индекс 1)
+        if (foundInputs2.length >= 2) {
+            clusterTargetInput2 = foundInputs2[1];
+            console.log(`Используем второй input для отфильтрованных кластеров: ${clusterTargetInput2.id}`);
+        } else if (foundInputs2.length === 1) {
+            clusterTargetInput2 = foundInputs2[0];
+            console.log(`Найден только один input, используем его: ${clusterTargetInput2.id}`);
+        }
+
+        if (!clusterTargetInput2) {
+            const clusterInputs2 = document.querySelectorAll('input[type="number"]');
+            for (const input of clusterInputs2) {
+                const name = input.getAttribute('name') || '';
+                if (name.includes('CostPerAddedToCart') || name.includes('value')) {
+                    clusterTargetInput2 = input;
+                    break;
+                }
+            }
+        }
+        
+        if (clusterTargetInput2) {
+            clusterTargetInput2.focus();
+            clusterTargetInput2.value = cartCostRounded.toString();
+            clusterTargetInput2.dispatchEvent(new Event('input', { bubbles: true }));
+            clusterTargetInput2.dispatchEvent(new Event('change', { bubbles: true }));
+            console.log(`Значение ${cartCostRounded} установлено для отфильтрованных кластеров в поле ${clusterTargetInput2.id}`);
+            await wait(500);
+        }
+        
+        // Нажимаем "Применить"
+        showStatus('Применение стратегии удержания места...');
+        const holdPositionApplyBtn = Array.from(document.querySelectorAll('button.css-eqlbov')).find(btn => btn.textContent.trim() === 'Применить');
+        if (holdPositionApplyBtn) {
+            holdPositionApplyBtn.click();
+            console.log('Клик на "Применить" стратегию удержания места выполнен');
+            await wait(1000);
+            
+            // Нажимаем "Сохранить" - ищем по классу, потом по тексту
+            showStatus('Сохранение стратегии удержания места...');
+            let saveButton = document.querySelector('button.css-tn31lt');
+            if (!saveButton) {
+                // Fallback: ищем по тексту среди всех кнопок
+                saveButton = Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.trim() === 'Сохранить');
+            }
+            if (saveButton) {
+                saveButton.click();
+                console.log('Клик на "Сохранить" стратегию удержания места выполнен');
+                await wait(1000);
+                
+                // Закрываем модальное окно
+                const closeModalButtons2 = document.querySelectorAll('button[aria-label="Close"]');
+                if (closeModalButtons2.length > 0) {
+                    closeModalButtons2[closeModalButtons2.length - 1].click();
+                    console.log('Модальное окно закрыто');
+                    await wait(1000);
+                }
+            } else {
+                console.error('Кнопка "Сохранить" для стратегии удержания места не найдена');
+            }
+        } else {
+            console.error('Кнопка "Применить" для стратегии удержания места не найдена');
+        }
+    }
+
+    // Функция для применения автофильтров
+    async function applyAutofilters() {
+        showStatus('Открытие автофильтров...');
+        
+        const autofilterAccordion = document.getElementById('bidder-constructor');
+        if (!autofilterAccordion) {
+            console.error('Аккордеон "Автофильтры" не найден');
+            return;
+        }
+
+        const accordionButton = autofilterAccordion.querySelector('button[aria-expanded]');
+        const isExpanded = accordionButton && accordionButton.getAttribute('aria-expanded') === 'true';
+        
+        if (!isExpanded && accordionButton) {
+            accordionButton.click();
+            console.log('Аккордеон "Автофильтры" раскрыт');
+            await wait(1000);
+        }
+        
+        // Кликаем на "Шаблоны"
+        showStatus('Открытие шаблонов...');
+        const templatesButtons = autofilterAccordion.querySelectorAll('button');
+        let templateButton = null;
+        
+        for (const btn of templatesButtons) {
+            if (btn.textContent.trim() === 'Шаблоны') {
+                templateButton = btn;
+                break;
+            }
+        }
+        
+        if (!templateButton) {
+            console.error('Кнопка "Шаблоны" не найдена');
+            return;
+        }
+
+        templateButton.click();
+        console.log('Кнопка "Шаблоны" выбрана');
+        await wait(500);
+        
+        // Выбираем "Расширение"
+        showStatus('Выбор шаблона "Расширение"...');
+        const allElements = document.querySelectorAll('div, button, span, p');
+        let extensionTemplate = null;
+        
+        for (const el of allElements) {
+            const text = el.textContent.trim();
+            if (text === 'Расширение') {
+                extensionTemplate = el;
+                break;
+            }
+        }
+        
+        if (!extensionTemplate) {
+            console.error('Шаблон "Расширение" не найден');
+            return;
+        }
+
+        extensionTemplate.click();
+        console.log('Шаблон "Расширение" выбран');
+        await wait(500);
+        
+        // Сохраняем
+        showStatus('Сохранение автофильтров...');
+        const saveButtonsAfterTemplate = document.querySelectorAll('button');
+        let saveAutofilterButton = null;
+        
+        for (const btn of saveButtonsAfterTemplate) {
+            if (btn.textContent.trim() === 'Сохранить') {
+                saveAutofilterButton = btn;
+                break;
+            }
+        }
+        
+        if (!saveAutofilterButton) {
+            console.error('Кнопка "Сохранить" не найдена');
+            return;
+        }
+
+        saveAutofilterButton.click();
+        console.log('Клик на "Сохранить" автофильтры выполнен');
+        await wait(1000);
+        
+        // Применяем автофильтры вручную
+        showStatus('Применение автофильтров вручную...');
+        const applyButtonsAfterSave = document.querySelectorAll('button');
+        let applyAutofilterButton = null;
+        
+        for (const btn of applyButtonsAfterSave) {
+            if (btn.textContent.trim() === 'Применить автофильтры вручную') {
+                applyAutofilterButton = btn;
+                break;
+            }
+        }
+        
+        if (!applyAutofilterButton) {
+            console.error('Кнопка "Применить автофильтры вручную" не найдена');
+            return;
+        }
+
+        applyAutofilterButton.click();
+        console.log('Клик на "Применить автофильтры вручную" выполнен');
+        await wait(1000);
+    }
+
+    // Функция для обработки ошибок и перехода к следующей кампании
+    async function handleStrategyError() {
+        const savedDRR = await GM.getValue('bulkProcessingDRR', null);
+        if (savedDRR !== null) {
+            console.log('Обнаружена ошибка при массовой обработке, ждем 10 секунд');
+            showStatus('⚠️ Ошибка! Переход к следующей кампании через 10 секунд...', true);
+            
+            for (let i = 10; i > 0; i--) {
+                showStatus(`⚠️ Ошибка! Переход к следующей через ${i} сек...`, true);
+                await wait(1000);
+            }
+            
+            const campaignsJson = await GM.getValue('bulkCampaigns', null);
+            const currentIndex = await GM.getValue('bulkCurrentIndex', 0);
+            
+            if (campaignsJson) {
+                const campaigns = JSON.parse(campaignsJson);
+                const nextIndex = currentIndex + 1;
+                await GM.setValue('bulkCurrentIndex', nextIndex);
+                console.log(`✅ Кампания ${nextIndex} обработана успешно`);
+                
+                await wait(2000);
+                
+                if (nextIndex < campaigns.length) {
+                    console.log(`Переходим к кампании ${nextIndex + 1}: ${campaigns[nextIndex]}`);
+                    // Просто перенаправляем текущую вкладку на следующую кампанию
+                    window.location.href = campaigns[nextIndex];
+                } else {
+                    console.log('Все кампании обработаны');
+                    await GM.deleteValue('bulkProcessingDRR');
+                    await GM.deleteValue('bulkCampaigns');
+                    await GM.deleteValue('bulkCurrentIndex');
+                    await GM.deleteValue('bulkTotalCampaigns');
+                    
+                    showStatus('✅ Все кампании обработаны!');
+                    alert('✅ Все кампании обработаны!');
+                }
+            }
+        }
+    }
+
+    // Инициализация
+    function init() {
+        console.log('Инициализация расширения');
+        
+        if (window.location.href.includes('/advert/campaigns')) {
+            console.log('Страница списка кампаний обнаружена');
+            setTimeout(() => {
+                if (document.body) {
+                    createBulkUI();
+                } else {
+                    console.error('Body не найден');
+                }
+            }, 1000);
+        } else if (window.location.href.includes('/campaigns/auto-campaigns/') && window.location.href.includes('/campaign')) {
+            console.log('Страница кампании обнаружена');
+            setTimeout(() => {
+                if (document.body) {
+                    createUI();
+                } else {
+                    console.error('Body не найден');
+                }
+            }, 1000);
+        } else {
+            console.log('Не на странице кампании, UI не создается');
+        }
+    }
+
+    // Запускаем инициализацию
+    init();
+
+})();

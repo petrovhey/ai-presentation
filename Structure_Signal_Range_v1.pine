@@ -1,0 +1,191 @@
+//@version=6
+indicator("Structure Signal + Range", shorttitle="StrctRange", overlay=true, max_lines_count=500, max_labels_count=200, max_boxes_count=100)
+
+// ═══════════════════════════════════════════════════════════════
+//  ЛОНГ/ШОРТ свинги + 3 VWAP + АВТО-ДЕТЕКЦИЯ БОКОВИКА
+//  Боковик: импульс через VWAP → разворот → симметричный импульс обратно
+//  Результат: линии уровней боковика (HIGH / LOW)
+// ═══════════════════════════════════════════════════════════════
+
+// ─── НАСТРОЙКИ СВИНГОВ ──────────────────────────────────────
+swing_left  = input.int (8,    "Swing Left Bars",  minval=1, maxval=50)
+swing_right = input.int (8,    "Swing Right Bars", minval=1, maxval=50)
+col_bull    = input.color(color.new(#00e676, 0),  "Лонг")
+col_bear    = input.color(color.new(#ff3b3b, 0),  "Шорт")
+
+// ─── НАСТРОЙКИ БОКОВИКА ─────────────────────────────────────
+show_range    = input.bool(true,  "Детектировать боковики", group="Боковик")
+range_tol     = input.float(0.35, "Допуск симметрии", minval=0.1, maxval=0.9, step=0.05, group="Боковик")
+              // 0.35 = волна вниз может быть 65%–135% от волны вверх
+min_range_pts = input.float(0.0,  "Мин. размер боковика (пункты, 0=выкл)", group="Боковик")
+range_extend  = input.int(20,    "Продление линий (баров)", minval=5, maxval=100, group="Боковик")
+
+// ─── НАСТРОЙКИ СТОП-ЗОНЫ ────────────────────────────────────
+show_stop   = input.bool(true, "Зона стопа")
+col_stop    = input.color(color.new(#888888, 85), "Стоп зона")
+
+// ─── СВИНГИ ───────────────────────────────────────────────────
+ph = ta.pivothigh(high, swing_left, swing_right)
+pl = ta.pivotlow (low,  swing_left, swing_right)
+
+var float sh1 = na, var float sh2 = na, var float sh3 = na
+var float sl1 = na, var float sl2 = na, var float sl3 = na
+var bool longFired  = false, var bool shortFired = false
+
+if not na(ph)
+    sh3 := sh2, sh2 := sh1, sh1 := ph
+    shortFired := false
+if not na(pl)
+    sl3 := sl2, sl2 := sl1, sl1 := pl
+    longFired := false
+
+longSig  = not na(pl) and not na(sl1) and not na(sl2) and not na(sl3) and not longFired and sl3 > sl2 and sl1 > sl2
+shortSig = not na(ph) and not na(sh1) and not na(sh2) and not na(sh3) and not shortFired and sh3 < sh2 and sh1 < sh2
+
+if longSig
+    longFired := true
+if shortSig
+    shortFired := true
+
+// ─── 3 VWAP (D/W/M) ─────────────────────────────────────────
+// Дневной — старт в 06:00 UTC (09:00 МСК)
+isNewDay = hour == 6 and minute == 0 and (dayofmonth != dayofmonth[1] or dayofweek != dayofweek[1])
+var float vd_sum = 0.0, var float vd_vol = 0.0
+if isNewDay
+    vd_sum := hl2*volume, vd_vol := volume
+else
+    vd_sum := vd_sum[1] + hl2*volume, vd_vol := vd_vol[1] + volume
+vwapD = vd_vol > 0 ? vd_sum / vd_vol : na
+
+// Недельный
+startW = request.security(syminfo.tickerid, "W", time, lookahead=barmerge.lookahead_on)
+isNewW = ta.change(startW) != 0
+var float vw_sum = 0.0, var float vw_vol = 0.0
+if isNewW
+    vw_sum := hl2*volume, vw_vol := volume
+else
+    vw_sum := vw_sum[1] + hl2*volume, vw_vol := vw_vol[1] + volume
+vwapW = vw_vol > 0 ? vw_sum / vw_vol : na
+
+// Месячный
+startM = request.security(syminfo.tickerid, "M", time, lookahead=barmerge.lookahead_on)
+isNewM = ta.change(startM) != 0
+var float vm_sum = 0.0, var float vm_vol = 0.0
+if isNewM
+    vm_sum := hl2*volume, vm_vol := volume
+else
+    vm_sum := vm_sum[1] + hl2*volume, vm_vol := vm_vol[1] + volume
+vwapM = vm_vol > 0 ? vm_sum / vm_vol : na
+
+// Цвет VWAP по положению цены
+cD = close > vwapD ? color.green : color.red
+cW = close > vwapW ? color.green : color.red
+cM = close > vwapM ? color.green : color.red
+plot(vwapD, "VWAP D", color=cD, linewidth=2)
+plot(vwapW, "VWAP W", color=cW, linewidth=2)
+plot(vwapM, "VWAP M", color=cM, linewidth=2)
+
+// ═══════════════════════════════════════════════════════════════
+//  ДЕТЕКЦИЯ БОКОВИКА (симметрия волн от VWAP)
+//  Результат: горизонтальные линии HIGH / LOW боковика
+// ═══════════════════════════════════════════════════════════════
+crossUp  = ta.crossover (close, vwapD)
+crossDn  = ta.crossunder(close, vwapD)
+
+var float lastUpDist   = na
+var float lastUpHigh   = na
+var float lastDnDist   = na
+var float lastDnLow    = na
+
+var float curDist      = 0
+var float curExtreme   = na
+var int   state        = 0    // 0=ждём, 1=над VWAP, -1=под VWAP
+
+// Хранилище линий боковиков
+var line[] rangeHighLines = array.new_line()
+var line[] rangeLowLines  = array.new_line()
+var label[] rangeLabels   = array.new_label()
+
+// ─ Пересечение вверх ─
+if crossUp
+    if state == -1 and not na(lastUpDist)
+        // Завершена волна вниз → проверяем симметрию с волной вверх
+        ratio = lastDnDist / lastUpDist
+        isSym = ratio >= (1 - range_tol) and ratio <= (1 + range_tol)
+        sizePts = lastUpHigh - lastDnLow
+        bigEnough = min_range_pts <= 0 or sizePts >= min_range_pts
+        
+        if isSym and bigEnough and not na(lastUpHigh) and not na(lastDnLow)
+            // Рисуем линии уровней боковика (фиксированная длина, двигаются с графиком)
+            rightBar = bar_index + range_extend
+            hl = line.new(bar_index, lastUpHigh, rightBar, lastUpHigh,
+                 color=color.new(#ff9800, 30), width=2, style=line.style_solid)
+            ll = line.new(bar_index, lastDnLow,  rightBar, lastDnLow,
+                 color=color.new(#ff9800, 30), width=2, style=line.style_solid)
+            array.push(rangeHighLines, hl)
+            array.push(rangeLowLines, ll)
+            
+            lbl = label.new(bar_index, lastUpHigh, "RANGE " + str.tostring(sizePts, "#.##"),
+                 color=color.new(#ff9800, 20), textcolor=color.white,
+                 style=label.style_label_down, size=size.small)
+            array.push(rangeLabels, lbl)
+            
+            // Чистим старые (оставляем последние 5)
+            if array.size(rangeHighLines) > 5
+                line.delete(array.shift(rangeHighLines))
+                line.delete(array.shift(rangeLowLines))
+                label.delete(array.shift(rangeLabels))
+    
+    state      := 1
+    curDist    := 0
+    curExtreme := high
+
+// ─ Трекинг над VWAP ─
+if state == 1
+    dist = high - vwapD
+    if dist > curDist
+        curDist    := dist
+        curExtreme := high
+
+// ─ Пересечение вниз ─
+if crossDn
+    if state == 1
+        lastUpDist := curDist
+        lastUpHigh := curExtreme
+    
+    state      := -1
+    curDist    := 0
+    curExtreme := low
+
+// ─ Трекинг под VWAP ─
+if state == -1
+    dist = vwapD - low
+    if dist > curDist
+        curDist    := dist
+        curExtreme := low
+
+// ─ Обновляем правую границу линий боковиков (убрано — линии фиксированной длины)
+// Фиксированная длина range_extend баров от точки обнаружения
+
+// ═══════════════════════════════════════════════════════════════
+//  СТОП-ЗОНА И СТРЕЛКИ
+// ═══════════════════════════════════════════════════════════════
+if show_stop and longSig
+    box.new(bar_index - swing_right, sl2, bar_index + 10, sl1,
+         border_color=color.new(col_bear, 60), border_width=1, bgcolor=col_stop)
+    label.new(bar_index, sl2, "SL", style=label.style_label_right,
+         color=color.new(col_bear, 20), textcolor=color.white, size=size.tiny)
+
+if show_stop and shortSig
+    box.new(bar_index - swing_right, sh1, bar_index + 10, sh2,
+         border_color=color.new(col_bull, 60), border_width=1, bgcolor=col_stop)
+    label.new(bar_index, sh2, "SL", style=label.style_label_right,
+         color=color.new(col_bull, 20), textcolor=color.white, size=size.tiny)
+
+plotshape(longSig,  "LONG",  style=shape.triangleup,   location=location.belowbar,
+          color=col_bull, size=size.small, offset=-swing_right)
+plotshape(shortSig, "SHORT", style=shape.triangledown, location=location.abovebar,
+          color=col_bear, size=size.small, offset=-swing_right)
+
+alertcondition(longSig,  "Long",  "LL+LL+HL → LONG")
+alertcondition(shortSig, "Short", "HH+HH+LH → SHORT")

@@ -1,0 +1,394 @@
+// @version=6
+// ══════════════════════════════════════════════════════════════════════════════
+// SI Smart Flow PRO v4 — Smart Money Concepts (SMC)
+// Привязка к графику, свинги, ретесты, FVG, OB, BOS/ChoCH
+// ══════════════════════════════════════════════════════════════════════════════
+indicator("SI Smart Flow PRO v4", shorttitle="SISmartPro4", overlay=true, 
+     max_lines_count=500, max_boxes_count=500, max_labels_count=500, max_bars_back=500)
+
+// === НАСТРОЙКИ ===
+groupStructure = "📐 Структура рынка (HTF)"
+showStructure = input.bool(true, title="Показывать BOS/ChoCH", group=groupStructure)
+htfTimeframe = input.timeframe("60", title="Высший ТФ (структура)", group=groupStructure)
+showTrendBias = input.bool(true, title="Показывать Trend Bias", group=groupStructure)
+
+groupSwings = "🏔️ Свинги (LTF)"
+swingLookback = input.int(5, title="Swing Lookback", minval=3, maxval=20, group=groupSwings)
+showSwingLines = input.bool(true, title="Линии свингов", group=groupSwings)
+swingLineLength = input.int(20, title="Длина линии свинга (баров)", minval=10, maxval=100, group=groupSwings)
+
+groupRetests = "🔄 Ретесты"
+showRetestLines = input.bool(true, title="Линии ретестов", group=groupRetests)
+retestTolerance = input.float(0.2, title="Допуск ретеста (%)", minval=0.1, maxval=1.0, step=0.1, group=groupRetests)
+maxBarsForRetest = input.int(10, title="Макс. баров для ретеста", minval=5, maxval=30, group=groupRetests)
+
+groupFVG = "⚡ Fair Value Gaps (FVG)"
+showFVG = input.bool(true, title="Показывать FVG", group=groupFVG)
+fvgMinBars = input.int(1, title="Мин. баров для FVG", minval=1, maxval=3, group=groupFVG)
+fvgExtend = input.int(20, title="Продление FVG (баров)", minval=10, maxval=100, group=groupFVG)
+
+groupOB = "📦 Order Blocks (OB)"
+showOB = input.bool(true, title="Показывать OB", group=groupOB)
+obMinCandles = input.int(3, title="Мин. свечей перед импульсом", minval=2, maxval=5, group=groupOB)
+obExtend = input.int(30, title="Продление OB (баров)", minval=20, maxval=100, group=groupOB)
+
+groupSignals = "🎯 Сигналы"
+useStochFilter = input.bool(true, title="Фильтр стохастика", group=groupSignals)
+stochLongMax = input.int(40, title="Макс. стох для лонга", minval=20, maxval=50, group=groupSignals)
+stochShortMin = input.int(60, title="Мин. стох для шорта", minval=50, maxval=80, group=groupSignals)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HTF СТРУКТУРА (BOS/ChoCH)
+// ══════════════════════════════════════════════════════════════════════════════
+htfHigh = request.security(syminfo.tickerid, htfTimeframe, high)
+htfLow = request.security(syminfo.tickerid, htfTimeframe, low)
+htfClose = request.security(syminfo.tickerid, htfTimeframe, close)
+htfSwingHigh = request.security(syminfo.tickerid, htfTimeframe, ta.pivothigh(high, 5, 5))
+htfSwingLow = request.security(syminfo.tickerid, htfTimeframe, ta.pivotlow(low, 5, 5))
+
+// Структурные свинги HTF
+var float[] htfSwingHighs = array.new_float()
+var float[] htfSwingLows = array.new_float()
+var int[] htfSwingHighBars = array.new_int()
+var int[] htfSwingLowBars = array.new_int()
+
+if not na(htfSwingHigh)
+    array.push(htfSwingHighs, htfSwingHigh)
+    array.push(htfSwingHighBars, bar_index)
+    if array.size(htfSwingHighs) > 10
+        array.shift(htfSwingHighs)
+        array.shift(htfSwingHighBars)
+
+if not na(htfSwingLow)
+    array.push(htfSwingLows, htfSwingLow)
+    array.push(htfSwingLowBars, bar_index)
+    if array.size(htfSwingLows) > 10
+        array.shift(htfSwingLows)
+        array.shift(htfSwingLowBars)
+
+// BOS/ChoCH Detection
+bool bosUp = false
+bool bosDown = false
+bool chochUp = false
+bool chochDown = false
+
+int htfHighCount = array.size(htfSwingHighs)
+int htfLowCount = array.size(htfSwingLows)
+
+// BOS Up: цена закрылась выше последнего хая
+if htfHighCount >= 2
+    float prevHigh = array.get(htfSwingHighs, htfHighCount - 2)
+    if close > prevHigh and high[1] <= prevHigh
+        bosUp := true
+
+// BOS Down: цена закрылась ниже последнего лоя  
+if htfLowCount >= 2
+    float prevLow = array.get(htfSwingLows, htfLowCount - 2)
+    if close < prevLow and low[1] >= prevLow
+        bosDown := true
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LTF СВИНГИ (Линии на графике)
+// ══════════════════════════════════════════════════════════════════════════════
+float ltfSwingHigh = ta.pivothigh(high, swingLookback, swingLookback)
+float ltfSwingLow = ta.pivotlow(low, swingLookback, swingLookback)
+
+var line[] swingHighLines = array.new_line()
+var line[] swingLowLines = array.new_line()
+var label[] swingHighLabels = array.new_label()
+var label[] swingLowLabels = array.new_label()
+
+// Добавляем свинг хай
+if not na(ltfSwingHigh)
+    int swingBar = bar_index - swingLookback
+    // Рисуем горизонтальную линию от свинга вправо
+    line sl = line.new(swingBar, ltfSwingHigh, bar_index + swingLineLength, ltfSwingHigh, 
+         color=color.new(color.red, 30), style=line.style_solid, width=2)
+    array.push(swingHighLines, sl)
+    
+    label lbl = label.new(swingBar, ltfSwingHigh, "SH", 
+         color=color.new(color.red, 80), textcolor=color.white, size=size.tiny, style=label.style_label_down)
+    array.push(swingHighLabels, lbl)
+    
+    // Ограничиваем количество
+    if array.size(swingHighLines) > 5
+        line.delete(array.get(swingHighLines, 0))
+        label.delete(array.get(swingHighLabels, 0))
+        array.shift(swingHighLines)
+        array.shift(swingHighLabels)
+
+// Добавляем свинг лой
+if not na(ltfSwingLow)
+    int swingBar = bar_index - swingLookback
+    line sl = line.new(swingBar, ltfSwingLow, bar_index + swingLineLength, ltfSwingLow,
+         color=color.new(color.green, 30), style=line.style_solid, width=2)
+    array.push(swingLowLines, sl)
+    
+    label lbl = label.new(swingBar, ltfSwingLow, "SL",
+         color=color.new(color.green, 80), textcolor=color.white, size=size.tiny, style=label.style_label_up)
+    array.push(swingLowLabels, lbl)
+    
+    if array.size(swingLowLines) > 5
+        line.delete(array.get(swingLowLines, 0))
+        label.delete(array.get(swingLowLabels, 0))
+        array.shift(swingLowLines)
+        array.shift(swingLowLabels)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// РЕТЕСТЫ (False Breakout + Return)
+// ══════════════════════════════════════════════════════════════════════════════
+// Храним недавние свинги для отслеживания пробоев
+var float[] recentHighs = array.new_float()
+var float[] recentLows = array.new_float()
+var int[] recentHighBars = array.new_int()
+var int[] recentLowBars = array.new_int()
+var bool[] highBroken = array.new_bool()
+var bool[] lowBroken = array.new_bool()
+var line[] retestLines = array.new_line()
+
+// Добавляем свинги в массивы отслеживания
+if not na(ltfSwingHigh)
+    array.push(recentHighs, ltfSwingHigh)
+    array.push(recentHighBars, bar_index - swingLookback)
+    array.push(highBroken, false)
+    if array.size(recentHighs) > 8
+        array.shift(recentHighs)
+        array.shift(recentHighBars)
+        array.shift(highBroken)
+
+if not na(ltfSwingLow)
+    array.push(recentLows, ltfSwingLow)
+    array.push(recentLowBars, bar_index - swingLookback)
+    array.push(lowBroken, false)
+    if array.size(recentLows) > 8
+        array.shift(recentLows)
+        array.shift(recentLowBars)
+        array.shift(lowBroken)
+
+// Проверяем пробои и ретесты
+int highCount = array.size(recentHighs)
+int i = 0
+while i < highCount
+    float lvl = array.get(recentHighs, i)
+    bool isBroken = array.get(highBroken, i)
+    int swingBar = array.get(recentHighBars, i)
+    
+    // Пробой вверх (false breakout если вернулись)
+    if not isBroken and close > lvl and high[1] <= lvl
+        array.set(highBroken, i, true)
+        
+    // Ретест (возврат к пробитому уровню)
+    if isBroken
+        int barsSinceBreak = bar_index - swingBar
+        if barsSinceBreak <= maxBarsForRetest
+            float tolerance = lvl * retestTolerance / 100
+            if math.abs(high - lvl) <= tolerance
+                // Рисуем линию ретеста
+                line rtl = line.new(bar_index, lvl, bar_index + 10, lvl,
+                     color=color.new(color.orange, 0), style=line.style_dashed, width=2)
+                array.push(retestLines, rtl)
+                label.new(bar_index, lvl, "RET", color=color.orange, textcolor=color.white, size=size.tiny)
+                
+                if array.size(retestLines) > 3
+                    line.delete(array.get(retestLines, 0))
+                    array.shift(retestLines)
+    i := i + 1
+
+// То же для лоёв
+int lowCount = array.size(recentLows)
+int j = 0
+while j < lowCount
+    float lvl = array.get(recentLows, j)
+    bool isBroken = array.get(lowBroken, j)
+    int swingBar = array.get(recentLowBars, j)
+    
+    if not isBroken and close < lvl and low[1] >= lvl
+        array.set(lowBroken, j, true)
+        
+    if isBroken
+        int barsSinceBreak = bar_index - swingBar
+        if barsSinceBreak <= maxBarsForRetest
+            float tolerance = lvl * retestTolerance / 100
+            if math.abs(low - lvl) <= tolerance
+                line rtl = line.new(bar_index, lvl, bar_index + 10, lvl,
+                     color=color.new(color.blue, 0), style=line.style_dashed, width=2)
+                array.push(retestLines, rtl)
+                label.new(bar_index, lvl, "RET", color=color.blue, textcolor=color.white, size=size.tiny)
+                
+                if array.size(retestLines) > 3
+                    line.delete(array.get(retestLines, 0))
+                    array.shift(retestLines)
+    j := j + 1
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FAIR VALUE GAPS (FVG)
+// ══════════════════════════════════════════════════════════════════════════════
+// Bullish FVG: low[2] > high[0] (разрыв вверх после падения)
+// Bearish FVG: high[2] < low[0] (разрыв вниз после роста)
+bool bullFVG = low[2] > high[0] and close[2] < open[2]  // медвежья свеча, потом гэп вверх
+bool bearFVG = high[2] < low[0] and close[2] > open[2]   // бычья свеча, потом гэп вниз
+
+var box[] fvgBoxes = array.new_box()
+
+if showFVG and bullFVG
+    int leftBar = bar_index - 2
+    int rightBar = bar_index + fvgExtend
+    float top = low[2]
+    float bottom = high[0]
+    box b = box.new(leftBar, top, rightBar, bottom, 
+         bgcolor=color.new(color.green, 90), border_color=color.new(color.green, 50), border_width=1)
+    array.push(fvgBoxes, b)
+    label.new(bar_index - 1, (top + bottom) / 2, "FVG▲", color=color.new(color.green, 0), 
+         textcolor=color.white, size=size.tiny, style=label.style_label_center)
+    
+    if array.size(fvgBoxes) > 5
+        box.delete(array.get(fvgBoxes, 0))
+        array.shift(fvgBoxes)
+
+if showFVG and bearFVG
+    int leftBar = bar_index - 2
+    int rightBar = bar_index + fvgExtend
+    float top = high[2]
+    float bottom = low[0]
+    box b = box.new(leftBar, top, rightBar, bottom,
+         bgcolor=color.new(color.red, 90), border_color=color.new(color.red, 50), border_width=1)
+    array.push(fvgBoxes, b)
+    label.new(bar_index - 1, (top + bottom) / 2, "FVG▼", color=color.new(color.red, 0),
+         textcolor=color.white, size=size.tiny, style=label.style_label_center)
+    
+    if array.size(fvgBoxes) > 5
+        box.delete(array.get(fvgBoxes, 0))
+        array.shift(fvgBoxes)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ORDER BLOCKS (OB)
+// ══════════════════════════════════════════════════════════════════════════════
+// Bullish OB: последняя свеча перед импульсом вверх (коррекция перед ростом)
+// Bearish OB: последняя свеча перед импульсом вниз (коррекция перед падением)
+bool bullImpulse = close > open and (close - open) > (high - low) * 0.6  // сильная бычья свеча
+bool bearImpulse = close < open and (open - close) > (high - low) * 0.6  // сильная медвежья свеча
+
+var box[] bullOBs = array.new_box()
+var box[] bearOBs = array.new_box()
+var label[] bullOBLbls = array.new_label()
+var label[] bearOBLbls = array.new_label()
+
+// Bullish OB: ищем последнюю красную свечу перед импульсом вверх
+if bullImpulse and close[1] < open[1]
+    int obLeftBar = bar_index - obMinCandles
+    box b = box.new(obLeftBar, high[obMinCandles], bar_index + obExtend, low[obMinCandles],
+         bgcolor=color.new(color.blue, 85), border_color=color.new(color.blue, 40), border_width=1)
+    array.push(bullOBs, b)
+    label lbl = label.new(obLeftBar, high[obMinCandles], "B-OB", 
+         color=color.new(color.blue, 0), textcolor=color.white, size=size.tiny, style=label.style_label_down)
+    array.push(bullOBLbls, lbl)
+    
+    if array.size(bullOBs) > 3
+        box.delete(array.get(bullOBs, 0))
+        label.delete(array.get(bullOBLbls, 0))
+        array.shift(bullOBs)
+        array.shift(bullOBLbls)
+
+// Bearish OB: ищем последнюю зелёную свечу перед импульсом вниз
+if bearImpulse and close[1] > open[1]
+    int obLeftBar = bar_index - obMinCandles
+    box b = box.new(obLeftBar, high[obMinCandles], bar_index + obExtend, low[obMinCandles],
+         bgcolor=color.new(color.purple, 85), border_color=color.new(color.purple, 40), border_width=1)
+    array.push(bearOBs, b)
+    label lbl = label.new(obLeftBar, high[obMinCandles], "S-OB",
+         color=color.new(color.purple, 0), textcolor=color.white, size=size.tiny, style=label.style_label_down)
+    array.push(bearOBLbls, lbl)
+    
+    if array.size(bearOBs) > 3
+        box.delete(array.get(bearOBs, 0))
+        label.delete(array.get(bearOBLbls, 0))
+        array.shift(bearOBs)
+        array.shift(bearOBLbls)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ТЕСТЫ FVG (Mitigation Detection)
+// ══════════════════════════════════════════════════════════════════════════════
+// Если цена возвращается в FVG - это зона интереса
+bool priceInBullFVG = false
+bool priceInBearFVG = false
+
+int fvgSize = array.size(fvgBoxes)
+int k = 0
+while k < fvgSize
+    box b = array.get(fvgBoxes, k)
+    float top = box.get_top(b)
+    float bottom = box.get_bottom(b)
+    int right = box.get_right(b)
+    
+    // Проверяем если цена вошла в FVG зону
+    if low <= top and high >= bottom and bar_index <= right + 5
+        if top > bottom  // bull FVG
+            priceInBullFVG := true
+            // Рисуем линию теста
+            line.new(bar_index, (top+bottom)/2, bar_index + 5, (top+bottom)/2,
+                 color=color.new(color.lime, 0), style=line.style_dashed, width=2)
+            label.new(bar_index, (top+bottom)/2, "TEST", color=color.lime, textcolor=color.black, size=size.tiny)
+        else  // bear FVG
+            priceInBearFVG := true
+    k := k + 1
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ВИЗУАЛИЗАЦИЯ СТРУКТУРЫ (BOS/ChoCH)
+// ══════════════════════════════════════════════════════════════════════════════
+if showStructure
+    if bosUp
+        label.new(bar_index, low, "BOS▲", color=color.new(color.green, 0), 
+             textcolor=color.white, size=size.small, style=label.style_label_up)
+        // Линия тренда вверх
+        line.new(bar_index - 5, low[5], bar_index, high, color=color.green, width=2)
+        
+    if bosDown
+        label.new(bar_index, high, "BOS▼", color=color.new(color.red, 0),
+             textcolor=color.white, size=size.small, style=label.style_label_down)
+        line.new(bar_index - 5, high[5], bar_index, low, color=color.red, width=2)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СИГНАЛЫ НА ВХОД
+// ══════════════════════════════════════════════════════════════════════════════
+float kValue = ta.sma(ta.stoch(close, high, low, 18), 3)
+bool stochLong = kValue < stochLongMax
+bool stochShort = kValue > stochShortMin
+
+// Сигнал: Ретест + FVG + стох
+bool longSignal = showRetestLines and priceInBullFVG and stochLong and close > open
+bool shortSignal = showRetestLines and priceInBearFVG and stochShort and close < open
+
+plotshape(longSignal, title="LONG", style=shape.labelup, size=size.large, 
+     color=color.new(color.green, 0), text="🟢 LONG", textcolor=color.white)
+plotshape(shortSignal, title="SHORT", style=shape.labeldown, size=size.large,
+     color=color.new(color.red, 0), text="🔴 SHORT", textcolor=color.white)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ИНФО ПАНЕЛЬ
+// ══════════════════════════════════════════════════════════════════════════════
+var table infoPanel = table.new(position.top_right, 2, 8, bgcolor=color.new(color.black, 20), 
+     frame_color=color.gray, border_width=1)
+
+if barstate.islast
+    table.cell(infoPanel, 0, 0, "SI Smart Flow v4", text_color=color.white, text_size=size.small)
+    table.cell(infoPanel, 0, 1, "BOS/ChoCH:", text_color=color.gray, text_size=size.tiny)
+    table.cell(infoPanel, 1, 1, showStructure ? "✓ ON" : "✗ OFF", 
+         text_color=showStructure ? color.green : color.gray, text_size=size.tiny)
+    table.cell(infoPanel, 0, 2, "Свинги:", text_color=color.gray, text_size=size.tiny)
+    table.cell(infoPanel, 1, 2, str.tostring(array.size(swingHighLines) + array.size(swingLowLines)), 
+         text_color=color.white, text_size=size.tiny)
+    table.cell(infoPanel, 0, 3, "FVG:", text_color=color.gray, text_size=size.tiny)
+    table.cell(infoPanel, 1, 3, str.tostring(array.size(fvgBoxes)), text_color=color.white, text_size=size.tiny)
+    table.cell(infoPanel, 0, 4, "OB:", text_color=color.gray, text_size=size.tiny)
+    table.cell(infoPanel, 1, 4, str.tostring(array.size(bullOBs) + array.size(bearOBs)), 
+         text_color=color.white, text_size=size.tiny)
+    table.cell(infoPanel, 0, 5, "Ретесты:", text_color=color.gray, text_size=size.tiny)
+    table.cell(infoPanel, 1, 5, str.tostring(array.size(retestLines)), text_color=color.white, text_size=size.tiny)
+    table.cell(infoPanel, 0, 6, "Stoch:", text_color=color.gray, text_size=size.tiny)
+    table.cell(infoPanel, 1, 6, str.tostring(kValue, "#.##"), 
+         text_color=kValue > stochShortMin ? color.red : kValue < stochLongMax ? color.green : color.white, 
+         text_size=size.tiny)
+
+// Алерты
+alertcondition(longSignal, title="Long Entry", message="🟢 LONG {{ticker}} @ {{close}} | SMC: FVG+Retest")
+alertcondition(shortSignal, title="Short Entry", message="🔴 SHORT {{ticker}} @ {{close}} | SMC: FVG+Retest")

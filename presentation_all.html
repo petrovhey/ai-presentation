@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { width: 1920px; height: 1080px; overflow: hidden; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; background: #FAFBFD; color: #0F172A; -webkit-font-smoothing: antialiased; }
+.slide { width: 1920px; height: 1080px; position: relative; padding: 0; overflow: hidden; }
+.header-bar { position: absolute; top: 0; left: 0; right: 0; height: 100px; padding: 24px 70px; display: flex; align-items: center; justify-content: space-between; z-index: 10; }
+.header-bar .title { font-family: 'DejaVu Sans', 'Arial Black', 'Liberation Sans', sans-serif; font-size: 38px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.02em; }
+.header-bar .subtitle { font-size: 16px; color: rgba(255,255,255,0.85); margin-top: 2px; }
+.header-bar .slide-num { font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.7); }
+.content { margin-top: 100px; padding: 30px 70px 40px; height: calc(1080px - 100px); overflow: hidden; }
+.no-header .content { margin-top: 0; padding-top: 60px; }
+h1 { font-family: 'DejaVu Sans', 'Arial Black', 'Liberation Sans', sans-serif; font-size: 56px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; color: #0F172A; }
+h2 { font-family: 'DejaVu Sans', 'Arial Black', 'Liberation Sans', sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; color: #0F172A; }
+h3 { font-size: 22px; font-weight: 700; color: #0F172A; line-height: 1.3; }
+.lead { font-size: 20px; color: #334155; line-height: 1.5; margin-top: 14px; }
+.text { font-size: 17px; color: #334155; line-height: 1.6; }
+.text-sm { font-size: 15px; color: #64748B; line-height: 1.5; }
+.card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px; padding: 22px 26px; box-shadow: 0 4px 20px rgba(15,23,42,0.05), 0 1px 3px rgba(15,23,42,0.03); position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent, #2563EB); }
+.card-title { font-size: 18px; font-weight: 700; color: var(--accent, #2563EB); margin-bottom: 8px; }
+.card-body { font-size: 15px; color: #334155; line-height: 1.55; }
+.badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius: 100px; font-size: 14px; font-weight: 600; color: #FFFFFF; background: var(--badge-bg, #22C55E); }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+th { background: #0F172A; color: #FFFFFF; padding: 12px 14px; text-align: left; font-weight: 600; }
+td { padding: 10px 14px; border-bottom: 1px solid #E2E8F0; color: #334155; }
+tr:nth-child(even) td { background: #F1F5F9; }
+.num-circle { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #FFFFFF; background: var(--accent, #2563EB); flex-shrink: 0; }
+.deco-circle { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.12; pointer-events: none; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+.grid-7 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.gap-20 { gap: 20px; }
+.gap-24 { gap: 24px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-20 { margin-top: 20px; }
+.mt-24 { margin-top: 24px; }
+.mt-32 { margin-top: 32px; }
+.hero-title { font-family: 'DejaVu Sans', 'Arial Black', 'Liberation Sans', sans-serif; font-size: 80px; font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; color: #0F172A; }
+.hero-subtitle { font-size: 28px; color: #334155; margin-top: 16px; font-weight: 400; }
+.hero-accent { width: 100px; height: 6px; border-radius: 3px; background: #2563EB; margin-top: 24px; }
+.hero-meta { font-size: 16px; color: #64748B; margin-top: 20px; }
+.dept-col { display: flex; flex-direction: column; gap: 10px; }
+.dept-col-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent, #2563EB); margin-bottom: 2px; }
+.dept-item { display: flex; gap: 8px; align-items: flex-start; }
+.dept-bar { width: 4px; min-height: 20px; border-radius: 2px; background: var(--accent, #2563EB); flex-shrink: 0; margin-top: 3px; }
+.dept-text { font-size: 14px; color: #0F172A; line-height: 1.45; }
+.prompt-box { background: #F1F5F9; border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #334155; line-height: 1.45; border-left: 3px solid var(--accent, #2563EB); }
+.prompt-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #FFFFFF; background: var(--accent, #2563EB); flex-shrink: 0; }
+.icon-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dot-color, #22C55E); flex-shrink: 0; margin-top: 6px; }
+.rec-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.rec-item { display: flex; gap: 14px; }
+.rec-num { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; color: #FFFFFF; background: var(--accent, #2563EB); flex-shrink: 0; }
+.rec-title { font-size: 16px; font-weight: 700; color: #0F172A; line-height: 1.3; }
+.rec-body { font-size: 14px; color: #64748B; line-height: 1.5; margin-top: 4px; }
+
+@page {
+    size: 1920px 1080px;
+    margin: 0;
+}
+.slide-page {
+    page-break-after: always;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    position: relative;
+}
+.slide-page:last-child {
+    page-break-after: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide-page"><div class="content">
+<div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding-left:30px;">
+    <div class="hero-title">Нейросети и ИИ</div>
+    <div class="hero-subtitle">как использовать в работе</div>
+    <div class="hero-accent"></div>
+    <div class="hero-meta">Доклад для сотрудников компании • 2026</div>
+</div>
+<div class="deco-circle" style="width:500px;height:500px;background:#2563EB;top:-120px;right:-80px;"></div>
+<div class="deco-circle" style="width:400px;height:400px;background:#7C3AED;bottom:-80px;left:-80px;"></div>
+<div class="deco-circle" style="width:300px;height:300px;background:#EC4899;bottom:80px;right:180px;"></div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#2563EB;"><div><div class="title">Что такое ИИ</div></div><div class='slide-num'>02/25</div></div></div><div class="content">
+<div style="margin-top:-10px;"><h2>Что такое ИИ</h2>
+<div class="lead">Программа, которая учится на данных и делает выводы, которые раньше требовали человека</div></div>
+<div class="grid-3 mt-32" style="gap:28px;">
+    <div>
+        <div class="num-circle" style="background:#2563EB;">01</div>
+        <h3 style="margin-top:16px;">Обучение</h3>
+        <div class="text mt-12">Модель «читает» огромные массивы текста, кода, изображений — и запоминает закономерности. Это как если бы человек прочитал миллионы книг за одну ночь.</div>
+    </div>
+    <div>
+        <div class="num-circle" style="background:#7C3AED;">02</div>
+        <h3 style="margin-top:16px;">Инференс</h3>
+        <div class="text mt-12">При получении запроса модель предсказывает наиболее вероятный ответ, основываясь на том, что выучила. Не думает — считает вероятности.</div>
+    </div>
+    <div>
+        <div class="num-circle" style="background:#EC4899;">03</div>
+        <h3 style="margin-top:16px;">Токены</h3>
+        <div class="text mt-12">Текст разбивается на маленькие кусочки. 1 токен ≈ 0.75 слова. Контекстное окно = сколько токенов модель помнит одновременно.</div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#7C3AED;"><div><div class="title">Модальности</div></div><div class='slide-num'>03/25</div></div></div><div class="content">
+<div style="margin-top:-10px;"><h2>Модальности</h2>
+<div class="lead">Что модель может воспринимать на вход — для рабочих задач</div></div>
+<div class="grid-7 mt-24"><div class="card" style="--accent:#2563EB;"><div class="card-title">Текст</div><div class="card-body">Письма, документы, анализ, ответы</div></div><div class="card" style="--accent:#7C3AED;"><div class="card-title">Код</div><div class="card-body">Скрипты, баги, ревью, объяснение</div></div><div class="card" style="--accent:#EC4899;"><div class="card-title">Изображение</div><div class="card-body">Скриншот → цифры. Фото → аналоги. Скан → текст</div></div><div class="card" style="--accent:#22C55E;"><div class="card-title">Аудио</div><div class="card-body">Записи совещаний → расшифровка. Голосовые → текст</div></div><div class="card" style="--accent:#F59E0B;"><div class="card-title">Видео</div><div class="card-body">Ролики → summary, ключевые моменты</div></div><div class="card" style="--accent:#2563EB;"><div class="card-title">Документы</div><div class="card-body">Договоры → риски. Отчёты → тренды. Таблицы → ошибки</div></div><div class="card" style="--accent:#7C3AED;"><div class="card-title">Многомодальность</div><div class="card-body">Скрин + вопрос = анализ. Всё вместе</div></div></div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#0F172A;"><div><div class="title">Сравнение моделей</div></div><div class='slide-num'>04/25</div></div></div><div class="content">
+<div style="margin-top:-10px;"><h2>Сравнительная таблица моделей</h2></div>
+<div class="mt-16"><table><tbody><tr><th>Модель</th><th>Разраб.</th><th>VPN</th><th>Текст</th><th>Код</th><th>Карт.</th><th>Ауд.</th><th>Вид.</th><th>Док.</th><th>Беспл. лимит</th><th>Платный</th></tr><tr><td style="font-weight:700;color:#2563EB">Claude 4.7</td><td>Anthropic</td><td>Да</td><td>•</td><td>•</td><td>•</td><td>—</td><td>—</td><td>•</td><td>~45к/3ч</td><td>$18–30</td></tr><tr><td style="font-weight:700;color:#7C3AED">GPT-5.4</td><td>OpenAI</td><td>Да</td><td>•</td><td>•</td><td>•</td><td>•</td><td>•</td><td>•</td><td>~40–80/3ч</td><td>$20</td></tr><tr><td style="font-weight:700;color:#EC4899">Gemini 3.1</td><td>Google</td><td>Да</td><td>•</td><td>•</td><td>•</td><td>•</td><td>•</td><td>•</td><td>~60/мин</td><td>$20</td></tr><tr><td style="font-weight:700;color:#22C55E">Perplexity</td><td>Perplexity</td><td>Да</td><td>•</td><td>•</td><td>—</td><td>—</td><td>—</td><td>•</td><td>~20/ч</td><td>$20</td></tr><tr><td style="font-weight:700;color:#F59E0B">Grok 4</td><td>xAI</td><td>Да</td><td>•</td><td>•</td><td>•</td><td>•</td><td>•</td><td>•</td><td>~25/2ч</td><td>$30</td></tr><tr><td style="font-weight:700;color:#06B6D4">Kimi 2.6</td><td>Moonshot</td><td>Нет</td><td>•</td><td>•</td><td>•</td><td>—</td><td>—</td><td>•</td><td>~100/мин</td><td>API</td></tr><tr><td style="font-weight:700;color:#FBBF24">DeepSeek V4</td><td>DeepSeek</td><td>Нет</td><td>•</td><td>•</td><td>•</td><td>—</td><td>—</td><td>•</td><td>∞</td><td>API $0.25</td></tr><tr><td style="font-weight:700;color:#EF4444">Qwen 3.6</td><td>Alibaba</td><td>Нет</td><td>•</td><td>•</td><td>•</td><td>•</td><td>•</td><td>•</td><td>~120/мин</td><td>API</td></tr></tbody></table></div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#2563EB;"><div><div class="title">Claude 4.7</div></div><div class='slide-num'>05/25</div></div></div><div class="content">
+<div style="display:flex;gap:40px;">
+    <div style="flex:1;">
+        <div style="font-size:15px;color:#2563EB;font-weight:700;margin-bottom:6px;">Anthropic  •  Лидер Arena #1</div>
+        <div class="mt-12" style="font-size:13px;font-weight:700;color:#22C55E;text-transform:uppercase;letter-spacing:0.06em;">ПЛЮСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Минимум галлюцинаций — скажет «не уверен»</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Контекст до 4M токенов (целая книга за раз)</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Отлично понимает инструкции. Самый «человечный» стиль</div></div></div>
+        <div class="mt-16" style="font-size:13px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;">МИНУСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Нет видео и аудио. Дорогой API. Нужен VPN</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Бесплатно — 45к токенов каждые 3 часа</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="--accent:#2563EB;"><div class="card-title">Для чего использовать</div><div class="card-body">Анализ длинных документов и договоров. Написание сложных текстов. Разработка.</div></div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title">Платный тариф</div><div class="card-body">$18–30/мес — больше лимитов, ранний доступ</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#7C3AED;"><div><div class="title">GPT-5.4</div></div><div class='slide-num'>06/25</div></div></div><div class="content">
+<div style="display:flex;gap:40px;">
+    <div style="flex:1;">
+        <div style="font-size:15px;color:#7C3AED;font-weight:700;margin-bottom:6px;">OpenAI  •  Самая известная модель</div>
+        <div class="mt-12" style="font-size:13px;font-weight:700;color:#22C55E;text-transform:uppercase;letter-spacing:0.06em;">ПЛЮСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Всё-в-одном: текст, код, картинки, видео, голос</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Экосистема: плагины, GPTs, интеграции везде</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Голосовой режим. Canvas — совместное редактирование</div></div></div>
+        <div class="mt-16" style="font-size:13px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;">МИНУСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Галлюцинирует чаще, чем Claude. Нужен VPN</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Бесплатно 40–80 сообщений/3ч. Дорогой API</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="--accent:#7C3AED;"><div class="card-title">Для чего использовать</div><div class="card-body">Универсальные задачи. Генерация изображений. Голосовые диалоги.</div></div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title">Платный тариф</div><div class="card-body">$20/мес — GPT-5.4 без лимитов, Canvas</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#EC4899;"><div><div class="title">Gemini 3.1</div></div><div class='slide-num'>07/25</div></div></div><div class="content">
+<div style="display:flex;gap:40px;">
+    <div style="flex:1;">
+        <div style="font-size:15px;color:#EC4899;font-weight:700;margin-bottom:6px;">Google  •  Google-экосистема</div>
+        <div class="mt-12" style="font-size:13px;font-weight:700;color:#22C55E;text-transform:uppercase;letter-spacing:0.06em;">ПЛЮСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Многомодальность: текст + картинки + видео + аудио</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">2M контекст — 1500 страниц. Notebook LM</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Интеграция с Docs, Sheets, Drive, Gmail</div></div></div>
+        <div class="mt-16" style="font-size:13px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;">МИНУСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Нужен VPN. Иногда «врёт» увереннее других</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="--accent:#EC4899;"><div class="card-title">Для чего использовать</div><div class="card-body">Работа с Google-экосистемой. Анализ видео. Notebook LM.</div></div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title">Платный тариф</div><div class="card-body">$20/мес — Gemini 3.1 Pro</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#22C55E;"><div><div class="title">Perplexity</div></div><div class='slide-num'>08/25</div></div></div><div class="content">
+<div style="display:flex;gap:40px;">
+    <div style="flex:1;">
+        <div style="font-size:15px;color:#22C55E;font-weight:700;margin-bottom:6px;">Perplexity  •  Поисковик с ИИ</div>
+        <div class="mt-12" style="font-size:13px;font-weight:700;color:#22C55E;text-transform:uppercase;letter-spacing:0.06em;">ПЛЮСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Ищет в интернете в реальном времени. Ответы со ссылками</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Минимум галлюцинаций (опирается на факты)</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Pro Search по документам. Pro API — 3000/сутки</div></div></div>
+        <div class="mt-16" style="font-size:13px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;">МИНУСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Не умеет картинки/видео/аудио. Меньше контекста. VPN</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Бесплатно ~20 запросов/час</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="--accent:#22C55E;"><div class="card-title">Для чего использовать</div><div class="card-body">Поиск актуальной информации. Фактчекинг. Исследования.</div></div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title">Платный тариф</div><div class="card-body">$20/мес — Pro Search, API</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#F59E0B;"><div><div class="title">Grok 4</div></div><div class='slide-num'>09/25</div></div></div><div class="content">
+<div style="display:flex;gap:40px;">
+    <div style="flex:1;">
+        <div style="font-size:15px;color:#F59E0B;font-weight:700;margin-bottom:6px;">xAI  •  Доступ к X/Twitter</div>
+        <div class="mt-12" style="font-size:13px;font-weight:700;color:#22C55E;text-transform:uppercase;letter-spacing:0.06em;">ПЛЮСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">DeepSearch — поиск + X/Twitter в реальном времени</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Agentic Tasks — модель сама выполняет задачи</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Voice Mode. SuperGrok — ранний доступ</div></div></div>
+        <div class="mt-16" style="font-size:13px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;">МИНУСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Нужен VPN. Бесплатно мало токенов (25/2ч)</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Менее надёжен для серьёзных задач</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="--accent:#F59E0B;"><div class="card-title">Для чего использовать</div><div class="card-body">Мониторинг трендов в X/Twitter. Быстрые задачи с агентами.</div></div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title">Платный тариф</div><div class="card-body">$30/мес — больше токенов, ранний доступ</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#06B6D4;"><div><div class="title">Kimi 2.6</div></div><div class='slide-num'>10/25</div></div></div><div class="content">
+<div style="display:flex;gap:40px;">
+    <div style="flex:1;">
+        <div style="font-size:15px;color:#06B6D4;font-weight:700;margin-bottom:6px;">Moonshot AI  •  Без VPN</div>
+        <div class="mt-12" style="font-size:13px;font-weight:700;color:#22C55E;text-transform:uppercase;letter-spacing:0.06em;">ПЛЮСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Не нужен VPN — работает из России</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">2M контекст. Agent Swarm — параллельные агенты</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Long-Context Inferencing. ~100 запросов/мин</div></div></div>
+        <div class="mt-16" style="font-size:13px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;">МИНУСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Нет видео и аудио. Интерфейс китайский/английский</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="--accent:#06B6D4;"><div class="card-title">Для чего использовать</div><div class="card-body">Длинные документы. Сложные параллельные задачи. Программирование.</div></div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title">Платный тариф</div><div class="card-body">Нет фиксированного — API по расходу</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#FBBF24;"><div><div class="title">DeepSeek V4</div></div><div class='slide-num'>11/25</div></div></div><div class="content">
+<div style="display:flex;gap:40px;">
+    <div style="flex:1;">
+        <div style="font-size:15px;color:#FBBF24;font-weight:700;margin-bottom:6px;">DeepSeek  •  Цена/качество #1</div>
+        <div class="mt-12" style="font-size:13px;font-weight:700;color:#22C55E;text-transform:uppercase;letter-spacing:0.06em;">ПЛЮСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Не нужен VPN. API в 20–50 раз дешевле западных</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">#2 в Arena. MoE: 1.2T параметров, активны 32B</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Неограниченный бесплатный чат. DeepThink</div></div></div>
+        <div class="mt-16" style="font-size:13px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;">МИНУСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Нет видео и аудио. Спартанский интерфейс. Цензура</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="--accent:#FBBF24;"><div class="card-title">Для чего использовать</div><div class="card-body">Разработка и API-интеграции. Сложные расчёты (DeepThink).</div></div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title">Платный тариф</div><div class="card-body">API ~$0.25–0.50 за 1M токенов</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#EF4444;"><div><div class="title">Qwen 3.6</div></div><div class='slide-num'>12/25</div></div></div><div class="content">
+<div style="display:flex;gap:40px;">
+    <div style="flex:1;">
+        <div style="font-size:15px;color:#EF4444;font-weight:700;margin-bottom:6px;">Alibaba  •  Универсальная (без VPN)</div>
+        <div class="mt-12" style="font-size:13px;font-weight:700;color:#22C55E;text-transform:uppercase;letter-spacing:0.06em;">ПЛЮСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Не нужен VPN. Мультимодальность: всё-в-одном</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">Agentic Mode + Swarm Mode. QwQ-vision</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#22C55E;"></div><div class="text">2.56M контекст. ~120 запросов/мин</div></div></div>
+        <div class="mt-16" style="font-size:13px;font-weight:700;color:#EF4444;text-transform:uppercase;letter-spacing:0.06em;">МИНУСЫ</div>
+        <div class="mt-8"><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="icon-dot" style="--dot-color:#EF4444;"></div><div class="text" style="color:#64748B;">Интерфейс китайский/английский. Видео/аудио уступает</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:16px;">
+        <div class="card" style="--accent:#EF4444;"><div class="card-title">Для чего использовать</div><div class="card-body">Универсальные задачи без VPN. Изображения/видео. Агенты.</div></div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title">Платный тариф</div><div class="card-body">Нет фиксированного — API по расходу</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#2563EB;"><div><div class="title">Зачем эта модель?</div></div><div class='slide-num'>13/25</div></div></div><div class="content">
+<div style="margin-top:-10px;"><h2>Зачем именно эта модель?</h2></div>
+<div class="mt-20"><div style="display:flex;gap:30px;"><div style="flex:1;display:flex;gap:12px;"><div class="icon-dot" style="--dot-color:#2563EB;margin-top:7px;"></div><div><div style="font-size:17px;font-weight:700;color:#0F172A;">Claude</div><div class="text-sm mt-4">4M контекст + минимум галлюцинаций <span style="color:#2563EB;">→</span> Когда нужна точность на длинных документах</div></div></div><div style="flex:1;display:flex;gap:12px;"><div class="icon-dot" style="--dot-color:#7C3AED;margin-top:7px;"></div><div><div style="font-size:17px;font-weight:700;color:#0F172A;">GPT-5.4</div><div class="text-sm mt-4">Голос + Canvas + всё-в-одном <span style="color:#7C3AED;">→</span> Когда нужен универсальный помощник</div></div></div></div><div style="margin-top:16px;"></div><div style="display:flex;gap:30px;"><div style="flex:1;display:flex;gap:12px;"><div class="icon-dot" style="--dot-color:#EC4899;margin-top:7px;"></div><div><div style="font-size:17px;font-weight:700;color:#0F172A;">Gemini</div><div class="text-sm mt-4">Notebook LM + 2M контекст + Google <span style="color:#EC4899;">→</span> Когда работаешь в Google-экосистеме</div></div></div><div style="flex:1;display:flex;gap:12px;"><div class="icon-dot" style="--dot-color:#22C55E;margin-top:7px;"></div><div><div style="font-size:17px;font-weight:700;color:#0F172A;">Perplexity</div><div class="text-sm mt-4">Поиск с источниками в реальном времени <span style="color:#22C55E;">→</span> Когда нужны факты, а не домыслы</div></div></div></div><div style="margin-top:16px;"></div><div style="display:flex;gap:30px;"><div style="flex:1;display:flex;gap:12px;"><div class="icon-dot" style="--dot-color:#F59E0B;margin-top:7px;"></div><div><div style="font-size:17px;font-weight:700;color:#0F172A;">Grok</div><div class="text-sm mt-4">DeepSearch + Agentic Tasks + доступ к X <span style="color:#F59E0B;">→</span> Когда нужны тренды и агенты</div></div></div><div style="flex:1;display:flex;gap:12px;"><div class="icon-dot" style="--dot-color:#06B6D4;margin-top:7px;"></div><div><div style="font-size:17px;font-weight:700;color:#0F172A;">Kimi</div><div class="text-sm mt-4">Agent Swarm + 2M контекст без VPN <span style="color:#06B6D4;">→</span> Когда нет VPN и нужны сложные задачи</div></div></div></div><div style="margin-top:16px;"></div><div style="display:flex;gap:30px;"><div style="flex:1;display:flex;gap:12px;"><div class="icon-dot" style="--dot-color:#FBBF24;margin-top:7px;"></div><div><div style="font-size:17px;font-weight:700;color:#0F172A;">DeepSeek</div><div class="text-sm mt-4">MoE + дёшевый API + DeepThink <span style="color:#FBBF24;">→</span> Когда важна экономия и сложные расчёты</div></div></div><div style="flex:1;display:flex;gap:12px;"><div class="icon-dot" style="--dot-color:#EF4444;margin-top:7px;"></div><div><div style="font-size:17px;font-weight:700;color:#0F172A;">Qwen</div><div class="text-sm mt-4">Swarm Mode + Agentic + QwQ-vision <span style="color:#EF4444;">→</span> Когда нужен «всё-в-одном» без VPN</div></div></div></div><div style="margin-top:16px;"></div></div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#2563EB;"><div><div class="title">LM Arena</div><div class='subtitle'>Бесплатный способ попробовать любую модель</div></div><div class='slide-num'>14/25</div></div></div><div class="content">
+<div style="display:flex;gap:28px;height:100%;">
+    <div class="card" style="flex:1;--accent:#2563EB;">
+        <div class="card-title">Как работает</div>
+        <div class="card-body">Вводите вопрос → получаете два ответа от анонимных моделей → голосуете за лучший → узнаёте, кто победил.<br><br>Рейтинг Elo — объективная таблица лидеров.</div>
+    </div>
+    <div class="card" style="flex:1;--accent:#7C3AED;">
+        <div class="card-title">Что есть в 2026</div>
+        <div class="card-body">Text Arena — текстовые модели.<br>Video Arena — генерация видео.<br>Image Arena — картинки.<br>Мультимодальные сравнения.</div>
+    </div>
+</div>
+<div class="mt-24">
+    <div class="badge" style="--badge-bg:#22C55E;">Регистрация бесплатная. Карта не нужна.</div>
+    <div class="text-sm mt-8">lmarena.ai</div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#7C3AED;"><div><div class="title">Robomonkey</div><div class='subtitle'>Автоматизация процессов без программирования</div></div><div class='slide-num'>15/25</div></div></div><div class="content">
+<div style="display:flex;gap:28px;height:100%;">
+    <div class="card" style="flex:1;--accent:#7C3AED;">
+        <div class="card-title">Как работает</div>
+        <div class="card-body">Описываете задачу текстом → Robomonkey генерирует Chrome-расширение → устанавливаете в браузер → работает само.<br><br>Сбор данных, парсинг, автозаполнение форм, мониторинг цен.</div>
+    </div>
+    <div class="card" style="flex:1;--accent:#EC4899;">
+        <div class="card-title">Альтернативы 2026</div>
+        <div class="card-body">Stagehand — для разработчиков (open-source).<br>Gumloop — no-code для бизнеса.<br>Browser Use — Python для кодеров.<br>Make.com / n8n — связка сервисов.</div>
+    </div>
+</div>
+<div class="mt-24"><div class="badge" style="--badge-bg:#22C55E;">Экономия 90–95% стоимости виртуального ассистента</div></div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#22C55E;"><div><div class="title">AI-разработка</div></div><div class='slide-num'>16/25</div></div></div><div class="content">
+<div style="margin-top:-10px;"><h2>AI-разработка без программиста</h2></div>
+<div class="grid-4 mt-20"><div class="card" style="--accent:#2563EB;"><div class="card-title">Lovable</div><div class="card-body">Генерация веб-приложений и сайтов из текста<br><br><span style="color:#2563EB;font-weight:600;">→</span> MVP, лендинг, внутренний инструмент</div></div><div class="card" style="--accent:#7C3AED;"><div class="card-title">Blink.new</div><div class="card-body">Создание сайтов с AI-дизайном<br><br><span style="color:#7C3AED;font-weight:600;">→</span> Красивый сайт за минуты</div></div><div class="card" style="--accent:#22C55E;"><div class="card-title">Bolt.new</div><div class="card-body">AI-разработка на Next.js / React<br><br><span style="color:#22C55E;font-weight:600;">→</span> Настоящий код под капотом</div></div><div class="card" style="--accent:#F59E0B;"><div class="card-title">Hercules.app</div><div class="card-body">Внутренние бизнес-приложения<br><br><span style="color:#F59E0B;font-weight:600;">→</span> CRM, дашборды, формы без IT</div></div></div>
+<div class="text mt-20">Принцип: «Сделай сайт для приёма заявок с полями имя, телефон, выбор услуги и отправкой в Telegram» — платформа генерирует работающий сайт. Не нужно уметь кодить.</div>
+<div class="badge mt-12" style="--badge-bg:#2563EB;">Для бизнеса: прототипы за часы, внутренние инструменты без IT</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#22C55E;"><div><div class="title">БУХГАЛТЕРИЯ</div><div class='subtitle'>Распознавание, сверка, проверка</div></div><div class='slide-num'>17/25</div></div></div><div class="content">
+<div style="display:flex;gap:24px;height:100%;">
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#22C55E;">ЗАДАЧИ</div>
+        <div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Распознавание первичных документов (счета, акты, накладные) → структурированные данные</div></div><div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Сверка банковской выписки с 1С и выявление расхождений</div></div><div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Проверка правильности проводок и соответствия учетной политике</div></div><div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Подготовка форм налоговых деклараций по шаблонам</div></div><div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Анализ дебиторской / кредиторской задолженности</div></div>
+    </div>
+    <div style="flex:1;" class="dept-col">
+        <div class="dept-col-title" style="color:#22C55E;">КАКУЮ ИИ ИСПОЛЬЗОВАТЬ</div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title" style="color:#22C55E;">Платные</div><div class="card-body">Claude — лучший для структурирования длинных документов. GPT-4 — универсальный (Canvas для таблиц).</div></div>
+        <div class="card" style="--accent:#2563EB;"><div class="card-title" style="color:#2563EB;">Бесплатные</div><div class="card-body">DeepSeek — неограниченно, без VPN, отлично справляется с таблицами. Qwen — 120 запросов/мин.</div></div>
+    </div>
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#22C55E;">ПРИМЕРЫ ПРОМПТОВ</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#22C55E;">1</div><div class="prompt-box" style="--accent:#22C55E;">Я загрузил скан 50 счетов поставщиков. Извлеки из каждого: ИНН, КПП, сумму, дату, номер счета. Сформируй таблицу.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#22C55E;">2</div><div class="prompt-box" style="--accent:#22C55E;">Сверь эту банковскую выписку с данными из 1С. Найди расхождения по суммам и датам. Выдели строки без соответствия.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#22C55E;">3</div><div class="prompt-box" style="--accent:#22C55E;">Проверь правильность проводки: Дебет 62 Кредит 90 на сумму 150 000 руб. Это реализация услуг. Соответствует ли учетной политике?</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#2563EB;"><div><div class="title">ФИНАНСЫ</div><div class='subtitle'>Прогнозирование, бюджеты, сценарии</div></div><div class='slide-num'>18/25</div></div></div><div class="content">
+<div style="display:flex;gap:24px;height:100%;">
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#2563EB;">ЗАДАЧИ</div>
+        <div class="dept-item"><div class="dept-bar" style="background:#2563EB;"></div><div class="dept-text">Прогнозирование cash flow на основе исторических данных</div></div><div class="dept-item"><div class="dept-bar" style="background:#2563EB;"></div><div class="dept-text">Сценарное моделирование (оптимистичный, реалистичный, пессимистичный)</div></div><div class="dept-item"><div class="dept-bar" style="background:#2563EB;"></div><div class="dept-text">Подготовка отчетности для совета директоров / инвесторов</div></div><div class="dept-item"><div class="dept-bar" style="background:#2563EB;"></div><div class="dept-text">Анализ инвестиционных проектов (NPV, IRR, срок окупаемости)</div></div><div class="dept-item"><div class="dept-bar" style="background:#2563EB;"></div><div class="dept-text">Выявление аномалий в финансовых данных</div></div>
+    </div>
+    <div style="flex:1;" class="dept-col">
+        <div class="dept-col-title" style="color:#2563EB;">КАКУЮ ИИ ИСПОЛЬЗОВАТЬ</div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title" style="color:#22C55E;">Платные</div><div class="card-body">Claude — точность и структура для сложных расчетов. GPT-4 — Canvas для совместной работы с Excel.</div></div>
+        <div class="card" style="--accent:#2563EB;"><div class="card-title" style="color:#2563EB;">Бесплатные</div><div class="card-body">DeepSeek — DeepThink для сложных расчетов, без VPN. Kimi — 2M контекст для больших таблиц.</div></div>
+    </div>
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#2563EB;">ПРИМЕРЫ ПРОМПТОВ</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#2563EB;">1</div><div class="prompt-box" style="--accent:#2563EB;">На основе данных о выручке за 24 месяца построй прогноз cash flow на следующие 6 месяцев. Учти сезонность.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#2563EB;">2</div><div class="prompt-box" style="--accent:#2563EB;">Построй 3 сценария при росте выручки: +10%, +20%, +30%. Для каждого посчитай EBITDA и точку безубыточности.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#2563EB;">3</div><div class="prompt-box" style="--accent:#2563EB;">Проанализируй этот Excel-файл с P&L. Найди 3 главных отклонения от бюджета и объясни причины. Дай рекомендации.</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#7C3AED;"><div><div class="title">ЮРИСТЫ</div><div class='subtitle'>Анализ договоров, риски, претензии</div></div><div class='slide-num'>19/25</div></div></div><div class="content">
+<div style="display:flex;gap:24px;height:100%;">
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#7C3AED;">ЗАДАЧИ</div>
+        <div class="dept-item"><div class="dept-bar" style="background:#7C3AED;"></div><div class="dept-text">Анализ договоров на предмет рисковых пунктов</div></div><div class="dept-item"><div class="dept-bar" style="background:#7C3AED;"></div><div class="dept-text">Сравнение двух редакций одного документа</div></div><div class="dept-item"><div class="dept-bar" style="background:#7C3AED;"></div><div class="dept-text">Подготовка претензий, исковых заявлений по шаблонам</div></div><div class="dept-item"><div class="dept-bar" style="background:#7C3AED;"></div><div class="dept-text">Проверка compliance с законодательством</div></div><div class="dept-item"><div class="dept-bar" style="background:#7C3AED;"></div><div class="dept-text">Поиск судебной практики по аналогичным делам</div></div>
+    </div>
+    <div style="flex:1;" class="dept-col">
+        <div class="dept-col-title" style="color:#7C3AED;">КАКУЮ ИИ ИСПОЛЬЗОВАТЬ</div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title" style="color:#22C55E;">Платные</div><div class="card-body">Claude 4 — минимум галлюцинаций, 4M контекст для длинных договоров. GPT-4 — для генерации документов.</div></div>
+        <div class="card" style="--accent:#2563EB;"><div class="card-title" style="color:#2563EB;">Бесплатные</div><div class="card-body">DeepSeek — без VPN, неограниченно. Perplexity — поиск судебной практики с источниками.</div></div>
+    </div>
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#7C3AED;">ПРИМЕРЫ ПРОМПТОВ</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#7C3AED;">1</div><div class="prompt-box" style="--accent:#7C3AED;">Проанализируй этот договор поставки. Найди: неблагоприятные условия оплаты, отсутствие штрафных санкций, рисковые пункты о возврате. Дай рекомендации по доработке.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#7C3AED;">2</div><div class="prompt-box" style="--accent:#7C3AED;">Сравни две редакции NDA. Выдели все изменения, которые увеличивают риски для нашей компании. Оформи таблицу: пункт, было, стало, риск.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#7C3AED;">3</div><div class="prompt-box" style="--accent:#7C3AED;">Подготовь претензию поставщику о нарушении сроков поставки по договору №123 от 01.03.2026. Требование: неустойка 0.1% за каждый день просрочки.</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#F59E0B;"><div><div class="title">ПРОДАКТЫ</div><div class='subtitle'>Отзывы, ТЗ, конкуренты, приоритизация</div></div><div class='slide-num'>20/25</div></div></div><div class="content">
+<div style="display:flex;gap:24px;height:100%;">
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#F59E0B;">ЗАДАЧИ</div>
+        <div class="dept-item"><div class="dept-bar" style="background:#F59E0B;"></div><div class="dept-text">Анализ пользовательских отзывов и выявление болей</div></div><div class="dept-item"><div class="dept-bar" style="background:#F59E0B;"></div><div class="dept-text">Написание user stories и acceptance criteria</div></div><div class="dept-item"><div class="dept-bar" style="background:#F59E0B;"></div><div class="dept-text">Исследование конкурентов (фичи, цены, positioning)</div></div><div class="dept-item"><div class="dept-bar" style="background:#F59E0B;"></div><div class="dept-text">Приоритизация бэклога (RICE, MoSCoW)</div></div><div class="dept-item"><div class="dept-bar" style="background:#F59E0B;"></div><div class="dept-text">Подготовка ТЗ для разработчиков</div></div>
+    </div>
+    <div style="flex:1;" class="dept-col">
+        <div class="dept-col-title" style="color:#F59E0B;">КАКУЮ ИИ ИСПОЛЬЗОВАТЬ</div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title" style="color:#22C55E;">Платные</div><div class="card-body">GPT-4 — Canvas для документов. Claude — структурирование сложных ТЗ.</div></div>
+        <div class="card" style="--accent:#2563EB;"><div class="card-title" style="color:#2563EB;">Бесплатные</div><div class="card-body">Kimi — Agent Swarm для параллельных задач (конкуренты + отзывы одновременно). Qwen — Swarm Mode.</div></div>
+    </div>
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#F59E0B;">ПРИМЕРЫ ПРОМПТОВ</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#F59E0B;">1</div><div class="prompt-box" style="--accent:#F59E0B;">Вот 500 отзывов наших клиентов с Wildberries. Выдели топ-10 проблем и сгруппируй по категориям. Для каждой предложи решение.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#F59E0B;">2</div><div class="prompt-box" style="--accent:#F59E0B;">Напиши user story для функции: клиент хочет отслеживать доставку в личном кабинете. Acceptance criteria, критерии готовности, оценка сложности.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#F59E0B;">3</div><div class="prompt-box" style="--accent:#F59E0B;">Проанализируй 3 конкурента в нише БАДов. Сравни: цены, состав, упаковку, каналы продаж. Сформируй SWOT-анализ.</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#EC4899;"><div><div class="title">КОММЕРЧЕСКИЙ</div><div class='subtitle'>Скрипты, КП, воронка, реактивация</div></div><div class='slide-num'>21/25</div></div></div><div class="content">
+<div style="display:flex;gap:24px;height:100%;">
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#EC4899;">ЗАДАЧИ</div>
+        <div class="dept-item"><div class="dept-bar" style="background:#EC4899;"></div><div class="dept-text">Написание скриптов продаж и возражений</div></div><div class="dept-item"><div class="dept-bar" style="background:#EC4899;"></div><div class="dept-text">Подготовка коммерческих предложений (КП)</div></div><div class="dept-item"><div class="dept-bar" style="background:#EC4899;"></div><div class="dept-text">Анализ воронки продаж и выявление узких мест</div></div><div class="dept-item"><div class="dept-bar" style="background:#EC4899;"></div><div class="dept-text">Реактивация «спящих» клиентов</div></div><div class="dept-item"><div class="dept-bar" style="background:#EC4899;"></div><div class="dept-text">Сегментация клиентской базы</div></div>
+    </div>
+    <div style="flex:1;" class="dept-col">
+        <div class="dept-col-title" style="color:#EC4899;">КАКУЮ ИИ ИСПОЛЬЗОВАТЬ</div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title" style="color:#22C55E;">Платные</div><div class="card-body">GPT-4 — генерация текстов и скриптов. Claude — анализ данных воронки.</div></div>
+        <div class="card" style="--accent:#2563EB;"><div class="card-title" style="color:#2563EB;">Бесплатные</div><div class="card-body">Grok — доступ к трендам в X/Twitter для мониторинга. DeepSeek — для аналитики.</div></div>
+    </div>
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#EC4899;">ПРИМЕРЫ ПРОМПТОВ</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#EC4899;">1</div><div class="prompt-box" style="--accent:#EC4899;">Напиши 5 вариантов письма для реактивации клиентов, которые не купили 90 дней. Тон: дружелюбный, без давления. Добавь 3 варианта темы письма.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#EC4899;">2</div><div class="prompt-box" style="--accent:#EC4899;">Проанализируй воронку: 1000 лидов → 300 встреч → 80 КП → 20 сделок. Найди узкие места. Дай 3 рекомендации по улучшению конверсии на каждом этапе.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#EC4899;">3</div><div class="prompt-box" style="--accent:#EC4899;">Составь коммерческое предложение для B2B-клиента на поставку БАДов оптом. Условия: от 100 шт — скидка 20%, от 500 шт — скидка 30%. Добавь кейсы.</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#FBBF24;"><div><div class="title">ТОП-МЕНЕДЖМЕНТ</div><div class='subtitle'>Стратегия, due diligence, выходы на рынки</div></div><div class='slide-num'>22/25</div></div></div><div class="content">
+<div style="display:flex;gap:24px;height:100%;">
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#FBBF24;">ЗАДАЧИ</div>
+        <div class="dept-item"><div class="dept-bar" style="background:#FBBF24;"></div><div class="dept-text">Стратегический анализ и сценарное планирование</div></div><div class="dept-item"><div class="dept-bar" style="background:#FBBF24;"></div><div class="dept-text">Due diligence при acquisitions / партнерствах</div></div><div class="dept-item"><div class="dept-bar" style="background:#FBBF24;"></div><div class="dept-text">Структурирование сложных решений</div></div><div class="dept-item"><div class="dept-bar" style="background:#FBBF24;"></div><div class="dept-text">Подготовка к совещаниям и публичным выступлениям</div></div><div class="dept-item"><div class="dept-bar" style="background:#FBBF24;"></div><div class="dept-text">Анализ новых рынков и точек входа</div></div>
+    </div>
+    <div style="flex:1;" class="dept-col">
+        <div class="dept-col-title" style="color:#FBBF24;">КАКУЮ ИИ ИСПОЛЬЗОВАТЬ</div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title" style="color:#22C55E;">Платные</div><div class="card-body">Claude — точность, структура, минимум галлюцинаций для важных решений. GPT-4 — всё-в-одном.</div></div>
+        <div class="card" style="--accent:#2563EB;"><div class="card-title" style="color:#2563EB;">Бесплатные</div><div class="card-body">DeepSeek — DeepThink для сложных рассуждений. Perplexity — исследования рынков с источниками.</div></div>
+    </div>
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#FBBF24;">ПРИМЕРЫ ПРОМПТОВ</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#FBBF24;">1</div><div class="prompt-box" style="--accent:#FBBF24;">Проанализируй 3 варианта выхода нашего бренда БАДов на рынок Казахстана. Для каждого: бюджет, сроки, риски, конкуренты, regulatory requirements. Рекомендуй лучший.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#FBBF24;">2</div><div class="prompt-box" style="--accent:#FBBF24;">Мы рассматриваем покупку компании-производителя БАДов. Проведи due diligence: какие риски, что проверять, какие документы запросить. Оформи чек-лист.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#FBBF24;">3</div><div class="prompt-box" style="--accent:#FBBF24;">Подготовь структуру 15-минутного выступления на конференции о внедрении ИИ в компанию. Аудитория: 200 CEO среднего бизнеса. Добавь 1 слайд = 1 тезис.</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#06B6D4;"><div><div class="title">АНАЛИТИКИ</div><div class='subtitle'>Данные, SQL, визуализация, прогнозирование</div></div><div class='slide-num'>23/25</div></div></div><div class="content">
+<div style="display:flex;gap:24px;height:100%;">
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#06B6D4;">ЗАДАЧИ</div>
+        <div class="dept-item"><div class="dept-bar" style="background:#06B6D4;"></div><div class="dept-text">Обработка и очистка больших данных</div></div><div class="dept-item"><div class="dept-bar" style="background:#06B6D4;"></div><div class="dept-text">Написание SQL-запросов для сложных отчетов</div></div><div class="dept-item"><div class="dept-bar" style="background:#06B6D4;"></div><div class="dept-text">Визуализация данных (Python, Excel, BI)</div></div><div class="dept-item"><div class="dept-bar" style="background:#06B6D4;"></div><div class="dept-text">Прогнозирование (временные ряды, регрессия)</div></div><div class="dept-item"><div class="dept-bar" style="background:#06B6D4;"></div><div class="dept-text">A/B тестирование и статистическая значимость</div></div>
+    </div>
+    <div style="flex:1;" class="dept-col">
+        <div class="dept-col-title" style="color:#06B6D4;">КАКУЮ ИИ ИСПОЛЬЗОВАТЬ</div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title" style="color:#22C55E;">Платные</div><div class="card-body">Claude — кодинг, объяснение сложных запросов. GPT-4 — Canvas для совместной работы.</div></div>
+        <div class="card" style="--accent:#2563EB;"><div class="card-title" style="color:#2563EB;">Бесплатные</div><div class="card-body">DeepSeek — лучший для кода, без VPN. Kimi — 2M контекст для больших датасетов. Gemini — интеграция с Google Sheets.</div></div>
+    </div>
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#06B6D4;">ПРИМЕРЫ ПРОМПТОВ</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#06B6D4;">1</div><div class="prompt-box" style="--accent:#06B6D4;">Напиши SQL-запрос для отчета: выручка по регионам за последний квартал с динамикой к предыдущему. Добавь ранжирование регионов по росту.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#06B6D4;">2</div><div class="prompt-box" style="--accent:#06B6D4;">Загрузи этот CSV (10 000 строк). Найди аномалии: выбросы, пропуски, дубликаты. Построй гистограмму распределения по категориям. Выдай summary.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#06B6D4;">3</div><div class="prompt-box" style="--accent:#06B6D4;">У нас данные о 2 вариантах лендинга (A и B). 1000 показов каждому, конверсия A = 3.2%, B = 4.1%. Рассчитай статистическую значимость (p-value). Достоверна ли разница?</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#22C55E;"><div><div class="title">HR И ПОДБОР</div><div class='subtitle'>Вакансии, скрининг, адаптация, обратная связь</div></div><div class='slide-num'>24/25</div></div></div><div class="content">
+<div style="display:flex;gap:24px;height:100%;">
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#22C55E;">ЗАДАЧИ</div>
+        <div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Составление привлекательных вакансий</div></div><div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Скрининг резюме и ранжирование кандидатов</div></div><div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Составление планов адаптации</div></div><div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Описание компетенций и KPI</div></div><div class="dept-item"><div class="dept-bar" style="background:#22C55E;"></div><div class="dept-text">Подготовка обратной связи (review, 1-on-1)</div></div>
+    </div>
+    <div style="flex:1;" class="dept-col">
+        <div class="dept-col-title" style="color:#22C55E;">КАКУЮ ИИ ИСПОЛЬЗОВАТЬ</div>
+        <div class="card" style="--accent:#22C55E;"><div class="card-title" style="color:#22C55E;">Платные</div><div class="card-body">Claude — структурирование, анализ резюме. GPT-4 — генерация текстов, Canvas для документов.</div></div>
+        <div class="card" style="--accent:#2563EB;"><div class="card-title" style="color:#2563EB;">Бесплатные</div><div class="card-body">Kimi — обработка больших массивов резюме (2M контекст). Qwen — Swarm Mode для параллельных задач.</div></div>
+    </div>
+    <div style="flex:1.1;" class="dept-col">
+        <div class="dept-col-title" style="color:#22C55E;">ПРИМЕРЫ ПРОМПТОВ</div>
+        <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#22C55E;">1</div><div class="prompt-box" style="--accent:#22C55E;">Вот 50 резюме на позицию Product Manager. Проанализируй каждое по критериям: опыт в e-commerce, знание Agile, аналитические навыки. Выдели топ-10 кандидатов с обоснованием.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#22C55E;">2</div><div class="prompt-box" style="--accent:#22C55E;">Напиши план адаптации нового менеджера по продажам на первые 30 дней. День 1–7: знакомство. День 8–14: продукт. День 15–21: процессы. День 22–30: самостоятельность. Добавь чек-листы.</div></div><div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;"><div class="prompt-num" style="background:#22C55E;">3</div><div class="prompt-box" style="--accent:#22C55E;">Составь вакансию на позицию SMM-менеджера для бренда БАДов. Тон: молодежный, энергичный. Обязанности: TikTok, Instagram, UGC. Добавь 3 необычных требования, которые отсеют неподходящих.</div></div>
+    </div>
+</div>
+</div></div>
+<div class="slide-page"><div class="header-bar" style="background:#0F172A;"><div><div class="title">Рекомендации</div></div><div class='slide-num'>25/25</div></div></div><div class="content">
+<div style="margin-top:-10px;"><h2>Рекомендации по работе с ИИ</h2></div>
+<div class="mt-16"><div style="display:flex;gap:24px;margin-bottom:24px;">
+    <div style="flex:1;display:flex;gap:14px;">
+        <div class="rec-num" style="background:#2563EB;">01</div>
+        <div>
+            <div class="rec-title">Если не уверены — обсудите с другой моделью</div>
+            <div class="rec-body">Задайте тот же вопрос Claude, GPT и DeepSeek. Если все три говорят одно — можно доверять.</div>
+        </div>
+    </div>
+    <div style="flex:1;display:flex;gap:14px;">
+        <div class="rec-num" style="background:#7C3AED;">02</div>
+        <div>
+            <div class="rec-title">Формулируйте результат, не задачу</div>
+            <div class="rec-body">Плохо: «Вот отчёт, сделай что-нибудь». Хорошо: «Выдели 3 тренда и предложи 2 действия».</div>
+        </div>
+    </div>
+    <div style="flex:1;display:flex;gap:14px;">
+        <div class="rec-num" style="background:#22C55E;">03</div>
+        <div>
+            <div class="rec-title">Вначале план, потом реализация</div>
+            <div class="rec-body">Сначала составьте план и согласуйте его. Только потом выполняйте.</div>
+        </div>
+    </div></div><div style="display:flex;gap:24px;margin-bottom:24px;">
+    <div style="flex:1;display:flex;gap:14px;">
+        <div class="rec-num" style="background:#F59E0B;">04</div>
+        <div>
+            <div class="rec-title">Заставьте ИИ задать вопросы</div>
+            <div class="rec-body">«Есть вопросы? Всё ли понятно?» — лучшие результаты даёт диалог, не монолог.</div>
+        </div>
+    </div>
+    <div style="flex:1;display:flex;gap:14px;">
+        <div class="rec-num" style="background:#EC4899;">05</div>
+        <div>
+            <div class="rec-title">Разбивайте сложное на шаги</div>
+            <div class="rec-body">Не «напиши бизнес-план». Разбейте: структура → рынок → экономика → риски.</div>
+        </div>
+    </div>
+    <div style="flex:1;display:flex;gap:14px;">
+        <div class="rec-num" style="background:#2563EB;">06</div>
+        <div>
+            <div class="rec-title">Давайте контекст</div>
+            <div class="rec-body">«Ты финдиректор, готовишь презентацию для совета директоров» — результат в разы точнее.</div>
+        </div>
+    </div></div><div style="display:flex;gap:24px;margin-bottom:24px;">
+    <div style="flex:1;display:flex;gap:14px;">
+        <div class="rec-num" style="background:#EF4444;">07</div>
+        <div>
+            <div class="rec-title">Проверяйте факты</div>
+            <div class="rec-body">ИИ уверенно выдумывает даты и ссылки. Всегда перепроверяйте.</div>
+        </div>
+    </div>
+    <div style="flex:1;display:flex;gap:14px;">
+        <div class="rec-num" style="background:#7C3AED;">08</div>
+        <div>
+            <div class="rec-title">Системные промпты для рутины</div>
+            <div class="rec-body">«Ты аналитик. Каждый CSV → аномалии, топ-3 тренда, рекомендации» — экономит время.</div>
+        </div>
+    </div>
+    <div style="flex:1;display:flex;gap:14px;">
+        <div class="rec-num" style="background:#22C55E;">09</div>
+        <div>
+            <div class="rec-title">Конфиденциальность</div>
+            <div class="rec-body">Для чувствительных данных — локальные модели (DeepSeek, Qwen) или корпоративные тарифы.</div>
+        </div>
+    </div></div></div>
+<div class="text" style="margin-top:28px;font-weight:600;color:#0F172A;">
+    Главное: ИИ — инструмент. Результат зависит от того, насколько точно вы формулируете задачу.
+</div>
+</div></div></div>
+
+<!-- SLIDE 26: Реальные кейсы -->
+<div class="slide" style="page-break-after:always;"><div class="header-bar" style="background: linear-gradient(135deg,#0F172A 0%,#1E293B 100%);"><div><div class="title">Реальные кейсы</div><div class="subtitle">Что уже реализовано с помощью ИИ</div></div><div class='slide-num'>26/27</div></div><div class="content" style="padding-top:20px;"><div style="margin-top:-10px;"><h2>Реальные кейсы из практики</h2><div class="lead">Примеры задач, которые решались с помощью различных ИИ-моделей и инструментов</div></div><div class="mt-16" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;"><div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 12px rgba(0,0,0,0.05);"><div style="height:180px;overflow:hidden;background:#F8FAFC;"><img src="images/case_qwen_bads.png" style="width:100%;height:100%;object-fit:cover;object-position:top;"></div><div style="padding:14px;"><div style="font-size:13px;font-weight:700;color:#2563EB;">Qwen</div><div style="font-size:12px;color:#64748B;margin-top:4px;line-height:1.4;">Исследование популярных БАДов на Amazon</div></div></div><div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 12px rgba(0,0,0,0.05);"><div style="height:180px;overflow:hidden;background:#F8FAFC;"><img src="images/case_claude_correlation.png" style="width:100%;height:100%;object-fit:cover;object-position:top;"></div><div style="padding:14px;"><div style="font-size:13px;font-weight:700;color:#7C3AED;">Claude</div><div style="font-size:12px;color:#64748B;margin-top:4px;line-height:1.4;">Анализ корреляций продаж</div></div></div><div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 12px rgba(0,0,0,0.05);"><div style="height:180px;overflow:hidden;background:#F8FAFC;"><img src="images/case_kimi_chart.png" style="width:100%;height:100%;object-fit:cover;object-position:top;"></div><div style="padding:14px;"><div style="font-size:13px;font-weight:700;color:#22C55E;">Kimi</div><div style="font-size:12px;color:#64748B;margin-top:4px;line-height:1.4;">Интерактивный график прогноза выручки</div></div></div><div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 12px rgba(0,0,0,0.05);"><div style="height:180px;overflow:hidden;background:#F8FAFC;"><img src="images/case_gemini_esenin.png" style="width:100%;height:100%;object-fit:cover;object-position:top;"></div><div style="padding:14px;"><div style="font-size:13px;font-weight:700;color:#F59E0B;">Gemini + Notebook LM</div><div style="font-size:12px;color:#64748B;margin-top:4px;line-height:1.4;">Виртуальный Есенин — голосовой подкаст</div></div></div></div><div class="mt-16" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;"><div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 12px rgba(0,0,0,0.05);"><div style="height:200px;overflow:hidden;background:#F8FAFC;"><img src="images/case_robomonkey_contract.png" style="width:100%;height:100%;object-fit:cover;object-position:top;"></div><div style="padding:14px;"><div style="font-size:13px;font-weight:700;color:#EC4899;">RoboMonkey + Google Docs</div><div style="font-size:12px;color:#64748B;margin-top:4px;line-height:1.4;">Проверка договоров: подчёркивает опасные места и указывает на что обратить внимание</div></div></div><div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 12px rgba(0,0,0,0.05);"><div style="height:200px;overflow:hidden;background:#F8FAFC;"><img src="images/case_lovable_landing.png" style="width:100%;height:100%;object-fit:cover;object-position:top;"></div><div style="padding:14px;"><div style="font-size:13px;font-weight:700;color:#EF4444;">Lovable</div><div style="font-size:12px;color:#64748B;margin-top:4px;line-height:1.4;">Лендинг для привлечения партнёров в Узбекистане и Казахстане</div></div></div><div style="background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;box-shadow:0 4px 12px rgba(0,0,0,0.05);"><div style="height:200px;overflow:hidden;background:#F8FAFC;"><img src="images/case_grok_ui.png" style="width:100%;height:100%;object-fit:cover;object-position:top;"></div><div style="padding:14px;"><div style="font-size:13px;font-weight:700;color:#0EA5E9;">Grok</div><div style="font-size:12px;color:#64748B;margin-top:4px;line-height:1.4;">Проверка UI: загружаем скриншот интерфейса, получаем анализ</div></div></div></div></div></div>
+
+<!-- SLIDE 27: Тест -->
+<div class="slide" style="page-break-after:always;"><div class="header-bar" style="background: linear-gradient(135deg,#0F172A 0%,#1E293B 100%);"><div><div class="title">Тест</div><div class="subtitle">Практические задачи для проверки навыков</div></div><div class='slide-num'>27/27</div></div><div class="content" style="padding-top:20px;"><div style="margin-top:-10px;"><h2>Тест: подберите ИИ-инструмент под задачу</h2><div class="lead">Какую модель или сервис вы бы использовали для каждой из этих задач?</div></div><div class="mt-20" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;"><div class="card" style="--accent:#2563EB;"><div class="card-title">Задача 1</div><div class="card-body">Исследование популярных БАДов на Amazon — нужно проанализировать рынок, выделить топ-товаров и тренды. Какой ИИ выбрать?</div><div class="text-sm" style="margin-top:10px;color:#94A3B8;font-style:italic;">Ответ: Qwen</div></div><div class="card" style="--accent:#7C3AED;"><div class="card-title">Задача 2</div><div class="card-body">Анализ корреляций между показателями продаж — нужно найти связи между метриками и выделить инсайты. Какой ИИ выбрать?</div><div class="text-sm" style="margin-top:10px;color:#94A3B8;font-style:italic;">Ответ: Claude</div></div><div class="card" style="--accent:#22C55E;"><div class="card-title">Задача 3</div><div class="card-body">Создать интерактивный график прогноза выручки при изменении показателей — слайдеры и визуализация. Какой ИИ выбрать?</div><div class="text-sm" style="margin-top:10px;color:#94A3B8;font-style:italic;">Ответ: Kimi</div></div><div class="card" style="--accent:#F59E0B;"><div class="card-title">Задача 4</div><div class="card-body">Создать виртуального поэта в стиле Есенина для голосового подкаста. Какой ИИ выбрать?</div><div class="text-sm" style="margin-top:10px;color:#94A3B8;font-style:italic;">Ответ: Gemini + Notebook LM</div></div><div class="card" style="--accent:#EC4899;"><div class="card-title">Задача 5</div><div class="card-body">Проверить договор: подчеркнуть опасные места и указать на что обратить внимание. Какой ИИ выбрать?</div><div class="text-sm" style="margin-top:10px;color:#94A3B8;font-style:italic;">Ответ: RoboMonkey + Google Docs</div></div><div class="card" style="--accent:#EF4444;"><div class="card-title">Задача 6</div><div class="card-body">Загрузить скриншот интерфейса и получить анализ UX/UI. Какой ИИ выбрать?</div><div class="text-sm" style="margin-top:10px;color:#94A3B8;font-style:italic;">Ответ: Grok</div></div></div></div></div>
+</body></html>

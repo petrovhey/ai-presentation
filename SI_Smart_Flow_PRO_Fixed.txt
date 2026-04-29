@@ -1,0 +1,562 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// SI Smart Flow PRO — Smart Money + VSA + Price Action + MTF
+// Мульти-таймфрейм: H1 для структуры, M5 для входов
+// Визуализация уровней, Order Blocks, прогноз входа
+// ══════════════════════════════════════════════════════════════════════════════
+
+// @version=6
+indicator("SI Smart Flow PRO", 
+     shorttitle="SISmartPro", 
+     overlay=true, 
+     max_lines_count=500, 
+     max_boxes_count=500, 
+     max_labels_count=500)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// НАСТРОЙКИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// === Мульти-таймфрейм ===
+mtfGroup = "🕐 Мульти-таймфрейм (MTF)"
+htfTimeframe = input.timeframe("60", title="Высший ТФ (для структуры)", group=mtfGroup)
+useMTF = input.bool(true, title="Включить MTF анализ", group=mtfGroup)
+
+// === Структурные уровни ===
+levelsGroup = "📊 Уровни и Структура"
+showHTFSwings = input.bool(true, title="Показывать свинги H1", group=levelsGroup)
+showKeyLevels = input.bool(true, title="Показывать ключевые уровни", group=levelsGroup)
+
+// === Order Blocks PRO ===
+obGroup = "🔥 Order Blocks PRO"
+showOB = input.bool(true, title="Показывать OB", group=obGroup)
+obStrength = input.string("All", title="Сила OB", options=["All", "Strong", "Weak"], group=obGroup)
+obExtend = input.int(20, title="Продление OB (свечи)", minval=5, maxval=100, group=obGroup)
+obMitigation = input.bool(true, title="Показывать mitigation", group=obGroup)
+
+// === Стохастик ===
+stochGroup = "📈 Стохастик (18-3-5)"
+stochLength = input.int(18, title="Длина", minval=1, group=stochGroup)
+smoothK = input.int(3, title="Smooth K", minval=1, group=stochGroup)
+smoothD = input.int(5, title="Smooth D", minval=1, group=stochGroup)
+showDivergence = input.bool(true, title="Показывать дивергенции", group=stochGroup)
+
+// === Сигналы входа ===
+signalGroup = "🎯 Сигналы и Прогноз"
+signalMode = input.string("Конфлюэнс", title="Режим сигналов", options=["Конфлюэнс", "Агрессивный", "Консервативный"], group=signalGroup)
+minScore = input.int(4, title="Мин. Score для сигнала", minval=1, maxval=10, group=signalGroup)
+showForecast = input.bool(true, title="Показывать прогноз входа", group=signalGroup)
+showTradeZone = input.bool(true, title="Подсвечивать зоны входа", group=signalGroup)
+
+// === Risk Management ===
+riskGroup = "🛡️ Риск-менеджмент"
+defaultRR = input.float(2.0, title="Целевой R:R", minval=1.0, maxval=5.0, step=0.5, group=riskGroup)
+useATRStop = input.bool(true, title="Использовать ATR для стопа", group=riskGroup)
+atrLength = input.int(14, title="ATR период", minval=5, maxval=50, group=riskGroup)
+atrMultiplier = input.float(1.5, title="ATR множитель", minval=0.5, maxval=5.0, step=0.1, group=riskGroup)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// МУЛЬТИ-ТАЙМФРЕЙМ ДАННЫЕ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Получаем данные с H1
+[htfHigh, htfLow, htfClose, htfOpen] = request.security(syminfo.tickerid, htfTimeframe, [high, low, close, open])
+
+// Свинги с высшего таймфрейма
+htfPivotHigh = request.security(syminfo.tickerid, htfTimeframe, ta.pivothigh(high, 5, 5))
+htfPivotLow = request.security(syminfo.tickerid, htfTimeframe, ta.pivotlow(low, 5, 5))
+
+// EMA с H1 для тренда
+htfEMA50 = request.security(syminfo.tickerid, htfTimeframe, ta.ema(close, 50))
+
+// Структура рынка на H1
+htfBullish = htfClose > htfEMA50
+htfBearish = htfClose < htfEMA50
+
+// ATR (объявляем до использования)
+atr = ta.atr(atrLength)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// УРОВНИ СТРУКТУРЫ (H1)
+// ══════════════════════════════════════════════════════════════════════════════
+
+var line[] resistanceLines = array.new_line()
+var line[] supportLines = array.new_line()
+var label[] levelLabels = array.new_label()
+
+// Создаём уровни при появлении свингов на H1
+if showHTFSwings and not na(htfPivotHigh)
+    line newRes = line.new(bar_index - 5, htfPivotHigh, bar_index + 50, htfPivotHigh, 
+         color=color.new(color.red, 0), 
+         style=line.style_solid, 
+         width=2)
+    label newResLabel = label.new(bar_index + 25, htfPivotHigh, "RES " + str.tostring(htfPivotHigh, "#.##"), 
+         color=color.new(color.red, 80), 
+         textcolor=color.white, 
+         style=label.style_label_lower_right, 
+         size=size.small)
+    array.push(resistanceLines, newRes)
+    array.push(levelLabels, newResLabel)
+    
+    if array.size(resistanceLines) > 5
+        line.delete(array.shift(resistanceLines))
+        label.delete(array.shift(levelLabels))
+
+if showHTFSwings and not na(htfPivotLow)
+    line newSup = line.new(bar_index - 5, htfPivotLow, bar_index + 50, htfPivotLow, 
+         color=color.new(color.green, 0), 
+         style=line.style_solid, 
+         width=2)
+    label newSupLabel = label.new(bar_index + 25, htfPivotLow, "SUP " + str.tostring(htfPivotLow, "#.##"), 
+         color=color.new(color.green, 80), 
+         textcolor=color.white, 
+         style=label.style_label_upper_right, 
+         size=size.small)
+    array.push(supportLines, newSup)
+    array.push(levelLabels, newSupLabel)
+    
+    if array.size(supportLines) > 5
+        line.delete(array.shift(supportLines))
+        label.delete(array.shift(levelLabels))
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ORDER BLOCKS PRO (с продлением и mitigation)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Находим импульсные свечи
+impulseSize = (high - low) / low * 100
+isBullImpulse = close > open and impulseSize > 0.5
+isBearImpulse = close < open and impulseSize > 0.5
+
+// Определяем силу OB
+obVolume = volume > ta.sma(volume, 20) * 1.5
+obBodyRatio = math.abs(close - open) / (high - low)
+isStrongOB = obVolume and obBodyRatio > 0.6
+
+// Бычий OB: последняя свеча перед импульсом вверх
+var float bullOB_top = na
+var float bullOB_bottom = na
+var int bullOB_start = na
+var bool bullOB_active = false
+var bool bullOB_strong = false
+var box[] bullOB_boxes = array.new_box()
+
+if isBullImpulse and not isBullImpulse[1]
+    bullOB_top := high[1]
+    bullOB_bottom := low[1]
+    bullOB_start := bar_index[1]
+    bullOB_active := true
+    bullOB_strong := isStrongOB[1]
+    
+    if showOB
+        obColor = obStrength == "Strong" and not bullOB_strong ? color.new(color.gray, 80) : 
+                  obStrength == "Weak" and bullOB_strong ? color.new(color.gray, 80) : 
+                  color.new(color.green, 70)
+        
+        box newBullBox = box.new(bullOB_start, bullOB_top, bullOB_start + obExtend, bullOB_bottom, 
+             border_color=color.new(color.green, 30), 
+             bgcolor=obColor,
+             text="Bull OB" + (bullOB_strong ? " ★" : ""),
+             text_color=color.white,
+             text_size=size.tiny)
+        array.push(bullOB_boxes, newBullBox)
+
+// Проверяем mitigation (цена зашла в OB)
+bool bullOB_mitigation = bullOB_active and low <= bullOB_top and high >= bullOB_bottom
+
+if bullOB_mitigation
+    bullOB_active := false
+
+// Обновляем правую границу активных OB
+if showOB and bullOB_active
+    if array.size(bullOB_boxes) > 0
+        box lastBullBox = array.get(bullOB_boxes, array.size(bullOB_boxes) - 1)
+        box.set_right(lastBullBox, bar_index + obExtend)
+
+if showOB and not bullOB_active and array.size(bullOB_boxes) > 0
+    // Удаляем старые боксы если неактивны
+    if bar_index - bullOB_start > obExtend
+        box.delete(array.shift(bullOB_boxes))
+
+// Медвежий OB
+var float bearOB_top = na
+var float bearOB_bottom = na
+var int bearOB_start = na
+var bool bearOB_active = false
+var bool bearOB_strong = false
+var box[] bearOB_boxes = array.new_box()
+
+if isBearImpulse and not isBearImpulse[1]
+    bearOB_top := high[1]
+    bearOB_bottom := low[1]
+    bearOB_start := bar_index[1]
+    bearOB_active := true
+    bearOB_strong := isStrongOB[1]
+    
+    if showOB
+        obColor = obStrength == "Strong" and not bearOB_strong ? color.new(color.gray, 80) : 
+                  obStrength == "Weak" and bearOB_strong ? color.new(color.gray, 80) : 
+                  color.new(color.red, 70)
+        
+        box newBearBox = box.new(bearOB_start, bearOB_top, bearOB_start + obExtend, bearOB_bottom, 
+             border_color=color.new(color.red, 30), 
+             bgcolor=obColor,
+             text="Bear OB" + (bearOB_strong ? " ★" : ""),
+             text_color=color.white,
+             text_size=size.tiny)
+        array.push(bearOB_boxes, newBearBox)
+
+bool bearOB_mitigation = bearOB_active and high >= bearOB_bottom and low <= bearOB_top
+
+if bearOB_mitigation
+    bearOB_active := false
+
+// Обновляем правую границу активных Bear OB
+if showOB and bearOB_active
+    if array.size(bearOB_boxes) > 0
+        box lastBearBox = array.get(bearOB_boxes, array.size(bearOB_boxes) - 1)
+        box.set_right(lastBearBox, bar_index + obExtend)
+
+if showOB and not bearOB_active and array.size(bearOB_boxes) > 0
+    if bar_index - bearOB_start > obExtend
+        box.delete(array.shift(bearOB_boxes))
+
+// Рисуем mitigation
+plotshape(showOB and obMitigation and bullOB_mitigation, title="Bull OB Mitigation", 
+     style=shape.triangleup, size=size.small, color=color.green, location=location.belowbar)
+plotshape(showOB and obMitigation and bearOB_mitigation, title="Bear OB Mitigation", 
+     style=shape.triangledown, size=size.small, color=color.red, location=location.abovebar)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СТОХАСТИК И ДИВЕРГЕНЦИИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+k = ta.sma(ta.stoch(close, high, low, stochLength), smoothK)
+d = ta.sma(k, smoothD)
+
+// Детекция дивергенций
+var float lastHighPrice = na
+var float lastHighStoch = na
+var float lastLowPrice = na
+var float lastLowStoch = na
+var int lastHighBar = na
+var int lastLowBar = na
+
+bool bullDiv = false
+bool bearDiv = false
+
+if high > nz(lastHighPrice)
+    lastHighPrice := high
+    lastHighStoch := k
+    lastHighBar := bar_index
+
+if low < nz(lastLowPrice)
+    lastLowPrice := low
+    lastLowStoch := k
+    lastLowBar := bar_index
+
+// Медвежья дивергенция
+if high < lastHighPrice and k > lastHighStoch and k > 70 and bar_index - lastHighBar > 3
+    bearDiv := true
+    lastHighPrice := high
+    lastHighStoch := k
+    lastHighBar := bar_index
+
+// Бычья дивергенция
+if low > lastLowPrice and k < lastLowStoch and k < 30 and bar_index - lastLowBar > 3
+    bullDiv := true
+    lastLowPrice := low
+    lastLowStoch := k
+    lastLowBar := bar_index
+
+// Визуализация дивергенций
+if showDivergence and bullDiv
+    label.new(bar_index, low, "🟢 Div", color=color.new(color.green, 60), 
+         textcolor=color.white, style=label.style_label_up, size=size.small)
+if showDivergence and bearDiv
+    label.new(bar_index, high, "🔴 Div", color=color.new(color.red, 60), 
+         textcolor=color.white, style=label.style_label_down, size=size.small)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// КЛЮЧЕВЫЕ УРОВНИ (Support/Resistance зоны)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Создаём зоны консолидации как уровни
+pivotHighLTF = ta.pivothigh(high, 3, 3)
+pivotLowLTF = ta.pivotlow(low, 3, 3)
+
+// Продлеваем текущие уровни
+var float currentResistance = na
+var float currentSupport = na
+var line currentResLine = na
+var line currentSupLine = na
+
+if not na(pivotHighLTF)
+    currentResistance := pivotHighLTF
+    if showKeyLevels
+        line.delete(currentResLine)
+        currentResLine := line.new(bar_index - 3, currentResistance, bar_index + 30, currentResistance, 
+             color=color.new(color.maroon, 50), 
+             style=line.style_dashed, 
+             width=1)
+
+if not na(pivotLowLTF)
+    currentSupport := pivotLowLTF
+    if showKeyLevels
+        line.delete(currentSupLine)
+        currentSupLine := line.new(bar_index - 3, currentSupport, bar_index + 30, currentSupport, 
+             color=color.new(color.teal, 50), 
+             style=line.style_dashed, 
+             width=1)
+
+// Расстояние до ближайших уровней
+float distToRes = na(currentResistance) ? 999999 : currentResistance - close
+float distToSup = na(currentSupport) ? 999999 : close - currentSupport
+bool nearResistance = distToRes < (atr * 2)
+bool nearSupport = distToSup < (atr * 2)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СИГНАЛЬНАЯ СИСТЕМА С ПРОГНОЗОМ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// VSA анализ
+avgVolume = ta.sma(volume, 20)
+highVolume = volume > avgVolume * 1.5
+
+float spread = high - low
+float body = math.abs(close - open)
+float upperWick = high - math.max(close, open)
+float lowerWick = math.min(close, open) - low
+
+// VSA паттерны
+bool stopRunUp = highVolume and upperWick > body * 2
+bool stopRunDown = highVolume and lowerWick > body * 2
+
+// СЧЁТ ОЧКОВ ДЛЯ СИГНАЛОВ
+int longScore = 0
+int shortScore = 0
+
+// MTF Тренд
+if htfBullish
+    longScore += 2
+if htfBearish
+    shortScore += 2
+
+// Дивергенции
+if bullDiv
+    longScore += 2
+if bearDiv
+    shortScore += 2
+
+// OB Mitigation
+if bullOB_mitigation
+    longScore += 2
+if bearOB_mitigation
+    shortScore += 2
+
+// Близость к уровням
+if nearSupport
+    longScore += 1
+if nearResistance
+    shortScore += 1
+
+// VSA подтверждение
+if stopRunDown
+    longScore += 1
+if stopRunUp
+    shortScore += 1
+
+// Режимы
+int minScoreRequired = signalMode == "Агрессивный" ? 3 : signalMode == "Консервативный" ? 6 : minScore
+
+// Сигналы (объявляем переменные до использования)
+bool longSignal = longScore >= minScoreRequired
+bool shortSignal = shortScore >= minScoreRequired
+
+// Предыдущие значения для отслеживания изменений
+bool longSignalTrigger = longSignal and not longSignal[1]
+bool shortSignalTrigger = shortSignal and not shortSignal[1]
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ПРОГНОЗ ВХОДА — ЧТО НУЖНО ДЛЯ СДЕЛКИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Условия для LONG
+bool needLongDiv = not bullDiv and k < 30
+bool needLongOB = not bullOB_mitigation and bullOB_active
+bool needLongLevel = distToSup > atr * 2
+
+// Условия для SHORT
+bool needShortDiv = not bearDiv and k > 70
+bool needShortOB = not bearOB_mitigation and bearOB_active
+bool needShortLevel = distToRes > atr * 2
+
+// Готовность к входу
+bool longReady = bullDiv or bullOB_mitigation or (nearSupport and stopRunDown)
+bool shortReady = bearDiv or bearOB_mitigation or (nearResistance and stopRunUp)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ВИЗУАЛИЗАЦИЯ СИГНАЛОВ И ПРОГНОЗА
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Основные сигналы
+plotshape(longSignalTrigger, title="LONG Signal", style=shape.labelup, size=size.large, 
+     color=color.green, text="🟢 LONG", textcolor=color.white)
+plotshape(shortSignalTrigger, title="SHORT Signal", style=shape.labeldown, size=size.large, 
+     color=color.red, text="🔴 SHORT", textcolor=color.white)
+
+// Зоны входа (подсветка)
+color bgColor = longSignalTrigger ? color.new(color.green, 90) : 
+          shortSignalTrigger ? color.new(color.red, 90) : 
+          longReady ? color.new(color.green, 95) :
+          shortReady ? color.new(color.red, 95) :
+          na
+
+bgcolor(showTradeZone ? bgColor : na, title="Trade Zone Background")
+
+// Линии входа, стопа и тейка для текущего сигнала
+var line entryLine = na
+var line stopLine = na
+var line targetLine = na
+var label entryLabel = na
+
+if longSignalTrigger
+    float entryPrice = close
+    float stopPrice = useATRStop ? close - atr * atrMultiplier : ta.lowest(low, 5)
+    float targetPrice = entryPrice + (entryPrice - stopPrice) * defaultRR
+    
+    line.delete(entryLine)
+    line.delete(stopLine)
+    line.delete(targetLine)
+    label.delete(entryLabel)
+    
+    entryLine := line.new(bar_index, entryPrice, bar_index + 20, entryPrice, color=color.green, width=2)
+    stopLine := line.new(bar_index, stopPrice, bar_index + 20, stopPrice, color=color.red, width=1, style=line.style_dashed)
+    targetLine := line.new(bar_index, targetPrice, bar_index + 20, targetPrice, color=color.green, width=1, style=line.style_dashed)
+    entryLabel := label.new(bar_index + 10, entryPrice, "Entry: " + str.tostring(entryPrice, "#.##"), 
+         color=color.green, textcolor=color.white, size=size.small)
+    
+    label.new(bar_index + 10, stopPrice, "SL: " + str.tostring(stopPrice, "#.##"), 
+         color=color.red, textcolor=color.white, size=size.tiny)
+    label.new(bar_index + 10, targetPrice, "TP (" + str.tostring(defaultRR) + ":1): " + str.tostring(targetPrice, "#.##"), 
+         color=color.green, textcolor=color.white, size=size.tiny)
+
+if shortSignalTrigger
+    float entryPrice = close
+    float stopPrice = useATRStop ? close + atr * atrMultiplier : ta.highest(high, 5)
+    float targetPrice = entryPrice - (stopPrice - entryPrice) * defaultRR
+    
+    line.delete(entryLine)
+    line.delete(stopLine)
+    line.delete(targetLine)
+    label.delete(entryLabel)
+    
+    entryLine := line.new(bar_index, entryPrice, bar_index + 20, entryPrice, color=color.red, width=2)
+    stopLine := line.new(bar_index, stopPrice, bar_index + 20, stopPrice, color=color.green, width=1, style=line.style_dashed)
+    targetLine := line.new(bar_index, targetPrice, bar_index + 20, targetPrice, color=color.red, width=1, style=line.style_dashed)
+    entryLabel := label.new(bar_index + 10, entryPrice, "Entry: " + str.tostring(entryPrice, "#.##"), 
+         color=color.red, textcolor=color.white, size=size.small)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ИНФО-ПАНЕЛЬ С ПРОГНОЗОМ
+// ══════════════════════════════════════════════════════════════════════════════
+
+var table forecastTable = table.new(position.top_right, 2, 15, 
+     bgcolor=color.new(color.black, 10), 
+     frame_color=color.gray, 
+     frame_width=1,
+     border_color=color.gray)
+
+if barstate.islast and showForecast
+    // Заголовок
+    table.cell(forecastTable, 0, 0, "📊 SI Smart Flow PRO", text_color=color.white, text_size=size.normal)
+    table.cell(forecastTable, 1, 0, "", text_color=color.white)
+    
+    // MTF Статус
+    table.cell(forecastTable, 0, 1, "HTF Тренд (H1):", text_color=color.gray, text_size=size.small)
+    string trendText = htfBullish ? "🟢 БЫЧИЙ" : htfBearish ? "🔴 МЕДВЕЖИЙ" : "⚪ БОКОВИК"
+    color trendColor = htfBullish ? color.green : htfBearish ? color.red : color.gray
+    table.cell(forecastTable, 1, 1, trendText, text_color=trendColor, text_size=size.small)
+    
+    // Текущая цена и уровни
+    table.cell(forecastTable, 0, 2, "Цена:", text_color=color.gray, text_size=size.small)
+    table.cell(forecastTable, 1, 2, str.tostring(close, "#.##"), text_color=color.white, text_size=size.small)
+    
+    table.cell(forecastTable, 0, 3, "Ближ. Support:", text_color=color.gray, text_size=size.small)
+    string supText = na(currentSupport) ? "—" : str.tostring(currentSupport, "#.##") + " (" + str.tostring(distToSup/atr, "#.1") + " ATR)"
+    table.cell(forecastTable, 1, 3, supText, text_color=na(currentSupport) ? color.gray : color.green, text_size=size.small)
+    
+    table.cell(forecastTable, 0, 4, "Ближ. Resistance:", text_color=color.gray, text_size=size.small)
+    string resText = na(currentResistance) ? "—" : str.tostring(currentResistance, "#.##") + " (" + str.tostring(distToRes/atr, "#.1") + " ATR)"
+    table.cell(forecastTable, 1, 4, resText, text_color=na(currentResistance) ? color.gray : color.red, text_size=size.small)
+    
+    // Стохастик
+    table.cell(forecastTable, 0, 5, "Stochastic K:", text_color=color.gray, text_size=size.small)
+    color stochColor = k > 70 ? color.red : k < 30 ? color.green : color.white
+    table.cell(forecastTable, 1, 5, str.tostring(k, "#.##"), text_color=stochColor, text_size=size.small)
+    
+    // OB Статус
+    table.cell(forecastTable, 0, 6, "Bull OB:", text_color=color.gray, text_size=size.small)
+    string bullOBText = bullOB_active ? (bullOB_strong ? "★ Активен" : "Активен") : "Неактивен"
+    table.cell(forecastTable, 1, 6, bullOBText, text_color=bullOB_active ? color.green : color.gray, text_size=size.small)
+    
+    table.cell(forecastTable, 0, 7, "Bear OB:", text_color=color.gray, text_size=size.small)
+    string bearOBText = bearOB_active ? (bearOB_strong ? "★ Активен" : "Активен") : "Неактивен"
+    table.cell(forecastTable, 1, 7, bearOBText, text_color=bearOB_active ? color.red : color.gray, text_size=size.small)
+    
+    // ПРОГНОЗ ДЛЯ ЛОНГА
+    table.cell(forecastTable, 0, 8, "═══════════════", text_color=color.green, text_size=size.tiny)
+    table.cell(forecastTable, 1, 8, "═══════════════", text_color=color.green, text_size=size.tiny)
+    
+    table.cell(forecastTable, 0, 9, "🟢 LONG прогноз:", text_color=color.green, text_size=size.small)
+    string longStatus = longReady ? "✅ ГОТОВ!" : "⏳ Ожидание..."
+    table.cell(forecastTable, 1, 9, longStatus, text_color=longReady ? color.green : color.gray, text_size=size.small)
+    
+    table.cell(forecastTable, 0, 10, "  • Дивергенция:", text_color=color.gray, text_size=size.tiny)
+    table.cell(forecastTable, 1, 10, needLongDiv ? "❌ Нужна" : "✅ Есть", 
+         text_color=needLongDiv ? color.red : color.green, text_size=size.tiny)
+    
+    table.cell(forecastTable, 0, 11, "  • OB Mitigation:", text_color=color.gray, text_size=size.tiny)
+    table.cell(forecastTable, 1, 11, needLongOB ? "❌ Ожидать" : "✅ Готово", 
+         text_color=needLongOB ? color.red : color.green, text_size=size.tiny)
+    
+    table.cell(forecastTable, 0, 12, "  • Уровень:", text_color=color.gray, text_size=size.tiny)
+    table.cell(forecastTable, 1, 12, needLongLevel ? "⚠️ Далеко" : "✅ Близко", 
+         text_color=needLongLevel ? color.orange : color.green, text_size=size.tiny)
+    
+    // ПРОГНОЗ ДЛЯ ШОРТА
+    table.cell(forecastTable, 0, 13, "🔴 SHORT прогноз:", text_color=color.red, text_size=size.small)
+    string shortStatus = shortReady ? "✅ ГОТОВ!" : "⏳ Ожидание..."
+    table.cell(forecastTable, 1, 13, shortStatus, text_color=shortReady ? color.red : color.gray, text_size=size.small)
+    
+    table.cell(forecastTable, 0, 14, "  • Дивергенция:", text_color=color.gray, text_size=size.tiny)
+    table.cell(forecastTable, 1, 14, needShortDiv ? "❌ Нужна" : "✅ Есть", 
+         text_color=needShortDiv ? color.red : color.green, text_size=size.tiny)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СТАТУС БАРА ВНИЗУ
+// ══════════════════════════════════════════════════════════════════════════════
+
+var label statusLabel = na
+if barstate.islast
+    string statusText = "Score: L" + str.tostring(longScore) + " | S" + str.tostring(shortScore) + 
+         " | ATR: " + str.tostring(atr, "#.##") +
+         (bullOB_active ? " | BullOB" : "") +
+         (bearOB_active ? " | BearOB" : "") +
+         (bullDiv ? " | BullDiv" : "") +
+         (bearDiv ? " | BearDiv" : "")
+    
+    label.delete(statusLabel)
+    statusLabel := label.new(bar_index, low * 0.999, statusText, 
+         color=color.new(color.black, 0), 
+         textcolor=color.white, 
+         style=label.style_label_center, 
+         size=size.small)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// АЛЕРТЫ
+// ══════════════════════════════════════════════════════════════════════════════
+
+alertcondition(longSignalTrigger, title="Long Signal", message="🟢 SI Smart Flow — LONG на {{ticker}} @ {{close}}")
+alertcondition(shortSignalTrigger, title="Short Signal", message="🔴 SI Smart Flow — SHORT на {{ticker}} @ {{close}}")
+alertcondition(bullOB_mitigation, title="Bull OB Mitigation", message="🟢 Bull Order Block mitigated на {{ticker}}")
+alertcondition(bearOB_mitigation, title="Bear OB Mitigation", message="🔴 Bear Order Block mitigated на {{ticker}}")

@@ -1,0 +1,137 @@
+//@version=6
+strategy("Structure + Parabolic", shorttitle="Struct+PSAR", overlay=true, 
+         max_lines_count=500, max_labels_count=200, max_boxes_count=100,
+         default_qty_type=strategy.percent_of_equity, default_qty_value=10,
+         commission_type=strategy.commission.percent, commission_value=0.025)
+
+// ═══════════════════════════════════════════════════════════════
+//  Стратегия: LL+LL+HL → LONG | HH+HH+LH → SHORT
+//  Выход: Parabolic SAR (трейлинг стоп)
+// ═══════════════════════════════════════════════════════════════
+
+// ─── НАСТРОЙКИ ────────────────────────────────────────────────
+swing_len   = input.int (8,    "Swing Lookback", minval=3, maxval=50)
+psar_start  = input.float(0.02, "PSAR Start", step=0.01)
+psar_inc    = input.float(0.02, "PSAR Increment", step=0.01)
+psar_max    = input.float(0.2,  "PSAR Max", step=0.01)
+atr_len     = input.int (14,   "ATR Period (для инициал. стопа)")
+atr_mult    = input.float(1.0, "ATR × (начальный стоп)", step=0.1)
+
+show_rays   = input.bool(true, "Лучи свингов")
+col_bull    = input.color(color.new(#00e676, 0),  "Лонг")
+col_bear    = input.color(color.new(#ff3b3b, 0),  "Шорт")
+col_ray     = input.color(color.new(#ffd700, 55), "Лучи")
+
+// ─── PARABOLIC SAR ────────────────────────────────────────────
+psar = ta.sar(psar_start, psar_inc, psar_max)
+
+// ─── СВИНГИ ─────────────────────────────────────────────────
+ph = ta.pivothigh(high, swing_len, swing_len)
+pl = ta.pivotlow (low,  swing_len, swing_len)
+
+var float sh1 = na, var float sh2 = na, var float sh3 = na
+var float sl1 = na, var float sl2 = na, var float sl3 = na
+
+var bool longFired  = false
+var bool shortFired = false
+
+if not na(ph)
+    sh3 := sh2, sh2 := sh1, sh1 := ph
+    shortFired := false
+
+if not na(pl)
+    sl3 := sl2, sl2 := sl1, sl1 := pl
+    longFired := false
+
+// ─── СИГНАЛЫ ────────────────────────────────────────────────
+longCond  = not na(pl) and not na(sl1) and not na(sl2) and not na(sl3) and not longFired
+longStr   = sl3 > sl2 and sl1 > sl2
+longSig   = longCond and longStr
+
+shortCond = not na(ph) and not na(sh1) and not na(sh2) and not na(sh3) and not shortFired
+shortStr  = sh3 < sh2 and sh1 < sh2
+shortSig  = shortCond and shortStr
+
+if longSig
+    longFired := true
+if shortSig
+    shortFired := true
+
+// ─── ATR ДЛЯ НАЧАЛЬНОГО СТОПА ───────────────────────────────
+atrVal = ta.atr(atr_len)
+
+// ─── ВХОДЫ ─────────────────────────────────────────────────
+var float longStop  = na
+var float shortStop = na
+
+if longSig and strategy.position_size <= 0
+    risk      = atrVal * atr_mult
+    entry     = close
+    longStop  := entry - risk
+    // Стоп будет обновляться PSAR на каждом баре
+    strategy.entry("Long", strategy.long)
+
+if shortSig and strategy.position_size >= 0
+    risk       = atrVal * atr_mult
+    entry      = close
+    shortStop  := entry + risk
+    strategy.entry("Short", strategy.short)
+
+// ─── ВЫХОДЫ (PSAR = трейлинг стоп) ──────────────────────────
+if strategy.position_size > 0 and not na(psar)
+    // Для лонга: стоп = max(начальный стоп, PSAR)
+    // PSAR в лонге всегда ниже цены
+    stop = math.max(longStop, psar)
+    strategy.exit("Long Exit", from_entry="Long", stop=stop)
+
+if strategy.position_size < 0 and not na(psar)
+    // Для шорта: стоп = min(начальный стоп, PSAR)
+    stop = math.min(shortStop, psar)
+    strategy.exit("Short Exit", from_entry="Short", stop=stop)
+
+// ─── ВИЗУАЛИЗАЦИЯ ───────────────────────────────────────────
+plotshape(longSig,  "LONG",  style=shape.triangleup,   location=location.belowbar, color=col_bull, size=size.large, offset=-swing_len)
+plotshape(shortSig, "SHORT", style=shape.triangledown, location=location.abovebar, color=col_bear, size=size.large, offset=-swing_len)
+plot(psar, "PSAR", style=plot.style_cross, color=color.orange, linewidth=1)
+
+// Лучи свингов
+var line[]  ray_lines  = array.new<line>()
+var float[] ray_levels = array.new<float>()
+var label[] ray_labels = array.new<label>()
+
+if show_rays and not na(ph)
+    isHH = not na(sh2) and ph > sh2
+    lbl  = isHH ? "HH" : "LH"
+    lcol = isHH ? col_bull : col_bear
+    array.push(ray_lines,  line.new(bar_index - swing_len, ph, bar_index, ph, color=col_ray, width=1, style=line.style_dashed))
+    array.push(ray_levels, ph)
+    array.push(ray_labels, label.new(bar_index - swing_len, ph, text=lbl, style=label.style_label_down, color=color.new(lcol, 30), textcolor=color.white, size=size.small))
+
+if show_rays and not na(pl)
+    isLL = not na(sl2) and pl < sl2
+    lbl  = isLL ? "LL" : "HL"
+    lcol = isLL ? col_bear : col_bull
+    array.push(ray_lines,  line.new(bar_index - swing_len, pl, bar_index, pl, color=col_ray, width=1, style=line.style_dashed))
+    array.push(ray_levels, pl)
+    array.push(ray_labels, label.new(bar_index - swing_len, pl, text=lbl, style=label.style_label_up, color=color.new(lcol, 30), textcolor=color.white, size=size.small))
+
+if show_rays and array.size(ray_lines) > 0
+    i = 0
+    while i < array.size(ray_lines)
+        lvl    = array.get(ray_levels, i)
+        ray_ln = array.get(ray_lines,  i)
+        ray_lb = array.get(ray_labels, i)
+        body_top = math.max(open, close)
+        body_bot = math.min(open, close)
+        if body_bot < lvl and body_top > lvl
+            line.delete(ray_ln), label.delete(ray_lb)
+            array.remove(ray_lines,  i)
+            array.remove(ray_levels, i)
+            array.remove(ray_labels, i)
+        else
+            line.set_x2(ray_ln, bar_index)
+            i += 1
+
+// ─── ALERTS ──────────────────────────────────────────────────
+alertcondition(longSig,  "LONG",  "Structure + Parabolic LONG")
+alertcondition(shortSig, "SHORT", "Structure + Parabolic SHORT")

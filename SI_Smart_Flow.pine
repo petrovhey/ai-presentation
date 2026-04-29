@@ -1,0 +1,401 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// SI Smart Flow — Smart Money + VSA + Price Action Indicator
+// Для скальпинга и свинга на фьючерсах (SI, акции)
+// Стиль: SMC + Вайкофф + VSA + Дивергенции
+// ══════════════════════════════════════════════════════════════════════════════
+
+// @version=5
+indicator("SI Smart Flow — Smart Money + VSA + Дивергенции", 
+     shorttitle="SI Smart Flow", 
+     overlay=true, 
+     max_lines_count=500, 
+     max_boxes_count=500, 
+     max_labels_count=500)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// НАСТРОЙКИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// === Стохастик (твои параметры 18-3-5) ===
+stochGroup = "📊 Стохастик (Дивергенции)"
+stochLength = input.int(18, title="Длина стохастика", minval=1, group=stochGroup)
+smoothK = input.int(3, title="Smooth K", minval=1, group=stochGroup)
+smoothD = input.int(5, title="Smooth D", minval=1, group=stochGroup)
+showStochDiv = input.bool(true, title="Показывать дивергенции", group=stochGroup)
+
+// === Order Blocks & Ликвидность ===
+smcGroup = "🔥 Smart Money Concepts"
+obLookback = input.int(5, title="OB Lookback (свечи)", minval=2, maxval=20, group=smcGroup)
+obMinImpulse = input.float(0.3, title="Мин. импульс для OB (%)", minval=0.1, maxval=2.0, step=0.1, group=smcGroup)
+showBullOB = input.bool(true, title="Показывать Бычьи OB", group=smcGroup)
+showBearOB = input.bool(true, title="Показывать Медвежьи OB", group=smcGroup)
+showSwings = input.bool(true, title="Показывать Свинги (ликвидность)", group=smcGroup)
+swingLookback = input.int(5, title="Свинг Lookback", minval=3, maxval=20, group=smcGroup)
+
+// === FVG (Fair Value Gaps) ===
+fvgGroup = "⚡ Fair Value Gaps"
+showFVG = input.bool(true, title="Показывать FVG", group=fvgGroup)
+fvgMaxCandles = input.int(10, title="Макс. свечей для FVG", minval=3, maxval=50, group=fvgGroup)
+
+// === VSA (Volume Spread Analysis) ===
+vsaGroup = "📈 VSA Анализ"
+showVSA = input.bool(true, title="Показывать VSA сигналы", group=vsaGroup)
+volumeMA = input.int(20, title="MA объёма", minval=5, maxval=50, group=vsaGroup)
+vsaThreshold = input.float(1.5, title="Порог объёма VSA", minval=1.0, maxval=3.0, step=0.1, group=vsaGroup)
+
+// === Паттерны ===
+patternGroup = "🎯 Паттерны"
+showQuasimodo = input.bool(true, title="Квазимодо (QML)", group=patternGroup)
+showFakeout = input.bool(true, title="Ложные пробои (Fakeout)", group=patternGroup)
+fakeoutWickRatio = input.float(0.6, title="Мин. соотношение тени для fakeout", minval=0.3, maxval=0.9, step=0.1, group=patternGroup)
+
+// === Сигналы ===
+signalGroup = "🚨 Сигналы Входа"
+signalMode = input.string("Конфлюэнс", title="Режим сигналов", options=["Конфлюэнс", "Только дивергенция", "Только OB", "Всё подряд"], group=signalGroup)
+minRiskReward = input.float(1.5, title="Мин. Risk/Reward", minval=1.0, maxval=5.0, step=0.5, group=signalGroup)
+showTargets = input.bool(true, title="Показывать цели (TP/SL)", group=signalGroup)
+
+// === Алерты ===
+alertGroup = "🔔 Алерты"
+enableAlerts = input.bool(true, title="Включить алерты", group=alertGroup)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// СТОХАСТИК И ДИВЕРГЕНЦИИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+k = ta.sma(ta.stoch(close, high, low, stochLength), smoothK)
+d = ta.sma(k, smoothD)
+
+// Детекция дивергенций
+var float lastHighPrice = na
+var float lastHighStoch = na
+var float lastLowPrice = na
+var float lastLowStoch = na
+var int lastHighBar = na
+var int lastLowBar = na
+
+bullDiv = false
+bearDiv = false
+
+// Обновление экстремумов
+if high > nz(lastHighPrice)
+    lastHighPrice := high
+    lastHighStoch := k
+    lastHighBar := bar_index
+
+if low < nz(lastLowPrice)
+    lastLowPrice := low
+    lastLowStoch := k
+    lastLowBar := bar_index
+
+// Проверка медвежьей дивергенции (цена выше, стох ниже)
+if high < lastHighPrice and k > lastHighStoch and k > 70 and bar_index - lastHighBar > 3
+    bearDiv := true
+    lastHighPrice := high
+    lastHighStoch := k
+    lastHighBar := bar_index
+
+// Проверка бычьей дивергенции (цена ниже, стох выше)  
+if low > lastLowPrice and k < lastLowStoch and k < 30 and bar_index - lastLowBar > 3
+    bullDiv := true
+    lastLowPrice := low
+    lastLowStoch := k
+    lastLowBar := bar_index
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SMART MONEY: ORDER BLOCKS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Находим импульсные свечи для OB
+impulseUp = close > open and (close - open) / close * 100 > obMinImpulse
+impulseDown = close < open and (open - close) / close * 100 > obMinImpulse
+
+// Бычий OB: последняя свеча перед импульсом вверх
+var float bullOB_high = na
+var float bullOB_low = na
+var int bullOB_start = na
+var bool bullOB_active = false
+
+if impulseUp and not impulseUp[1]
+    bullOB_high := high[1]
+    bullOB_low := low[1]
+    bullOB_start := bar_index[1]
+    bullOB_active := true
+
+// Обновляем OB если цена тестирует его
+if bullOB_active and low <= bullOB_high and high >= bullOB_low
+    bullOB_active := false  // Пробит
+
+// Медвежий OB: последняя свеча перед импульсом вниз  
+var float bearOB_high = na
+var float bearOB_low = na
+var int bearOB_start = na
+var bool bearOB_active = false
+
+if impulseDown and not impulseDown[1]
+    bearOB_high := high[1]
+    bearOB_low := low[1]
+    bearOB_start := bar_index[1]
+    bearOB_active := true
+
+if bearOB_active and high >= bearOB_low and low <= bearOB_high
+    bearOB_active := false
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ЛИКВИДНОСТЬ: СВИНГИ
+// ══════════════════════════════════════════════════════════════════════════════
+
+pivotHigh = ta.pivothigh(high, swingLookback, swingLookback)
+pivotLow = ta.pivotlow(low, swingLookback, swingLookback)
+
+var line[] swingHighLines = array.new_line()
+var line[] swingLowLines = array.new_line()
+
+if not na(pivotHigh)
+    line newLine = line.new(bar_index[swingLookback], pivotHigh, bar_index, pivotHigh, 
+         color=color.new(color.red, 70), style=line.style_dashed, width=1)
+    array.push(swingHighLines, newLine)
+    if array.size(swingHighLines) > 10
+        line.delete(array.shift(swingHighLines))
+
+if not na(pivotLow)
+    line newLine = line.new(bar_index[swingLookback], pivotLow, bar_index, pivotLow, 
+         color=color.new(color.green, 70), style=line.style_dashed, width=1)
+    array.push(swingLowLines, newLine)
+    if array.size(swingLowLines) > 10
+        line.delete(array.shift(swingLowLines))
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FVG (FAIR VALUE GAPS)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Бычий FVG: текущий лоу выше предыдущего хая
+bullFVG = low > high[2] and close[1] > open[1]
+// Медвежий FVG: текущий хай ниже предыдущего лоу  
+bearFVG = high < low[2] and close[1] < open[1]
+
+var box[] bullFVG_boxes = array.new_box()
+var box[] bearFVG_boxes = array.new_box()
+
+if bullFVG and showFVG
+    box newBox = box.new(bar_index[2], high[2], bar_index + fvgMaxCandles, low, 
+         border_color=color.new(color.green, 50), bgcolor=color.new(color.green, 90))
+    array.push(bullFVG_boxes, newBox)
+
+if bearFVG and showFVG
+    box newBox = box.new(bar_index[2], low[2], bar_index + fvgMaxCandles, high, 
+         border_color=color.new(color.red, 50), bgcolor=color.new(color.red, 90))
+    array.push(bearFVG_boxes, newBox)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// VSA (VOLUME SPREAD ANALYSIS)
+// ══════════════════════════════════════════════════════════════════════════════
+
+avgVolume = ta.sma(volume, volumeMA)
+highVolume = volume > avgVolume * vsaThreshold
+lowVolume = volume < avgVolume * 0.5
+
+spread = high - low
+body = math.abs(close - open)
+upperWick = high - math.max(close, open)
+lowerWick = math.min(close, open) - low
+
+// VSA паттерны
+climaxUp = highVolume and close > open and body / spread > 0.6  // Сильное движение вверх
+climaxDown = highVolume and close < open and body / spread > 0.6  // Сильное движение вниз
+absorption = highVolume and body / spread < 0.3  // Большой спред, маленькое тело = борьба
+stopRun = highVolume and (upperWick > body * 2 or lowerWick > body * 2)  // Длинная тень
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ПАТТЕРНЫ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// === Квазимодо (QML) ===
+// Пробой структуры + возврат к предыдущему экстремуму
+recentHigh = ta.highest(high, 10)[1]
+recentLow = ta.lowest(low, 10)[1]
+
+bullQML = low <= recentLow and close > recentLow and close[1] > open[1]  // Ложный пробой минимума
+bearQML = high >= recentHigh and close < recentHigh and close[1] < open[1]  // Ложный пробой максимума
+
+// === Ложный пробой (Fakeout) ===
+wickRatioUp = upperWick / spread > fakeoutWickRatio
+wickRatioDown = lowerWick / spread > fakeoutWickRatio
+
+fakeoutUp = high > high[1] and close < high[1] and wickRatioUp and highVolume  // Пробой вверх + возврат
+fakeoutDown = low < low[1] and close > low[1] and wickRatioDown and highVolume   // Пробой вниз + возврат
+
+// ══════════════════════════════════════════════════════════════════════════════
+// КОМПЛЕКСНЫЕ СИГНАЛЫ (КОНФЛЮЭНС)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Считаем "очки" для лонга и шорта
+longScore = 0
+shortScore = 0
+
+// Дивергенции
+if bullDiv
+    longScore += 2
+if bearDiv
+    shortScore += 2
+
+// OB тест
+inBullOB = bullOB_active and low <= bullOB_high and low >= bullOB_low
+inBearOB = bearOB_active and high >= bearOB_low and high <= bearOB_high
+
+if inBullOB
+    longScore += 2
+if inBearOB
+    shortScore += 2
+
+// VSA подтверждение
+if stopRun and lowerWick > upperWick  // Длинная нижняя тень = поддержка
+    longScore += 1
+if stopRun and upperWick > lowerWick  // Длинная верхняя тень = сопротивление
+    shortScore += 1
+
+// Паттерны
+if bullQML or fakeoutDown
+    longScore += 2
+if bearQML or fakeoutUp
+    shortScore += 2
+
+// FVG в направлении
+if bullFVG[1] or bullFVG[2]
+    longScore += 1
+if bearFVG[1] or bearFVG[2]
+    shortScore += 1
+
+// Сигналы на графике
+longSignal = longScore >= 4 and not longSignal[1]  // Минимум 4 очка
+shortSignal = shortScore >= 4 and not shortSignal[1]
+
+// Фильтр по режиму
+if signalMode == "Только дивергенция"
+    longSignal := bullDiv and not bullDiv[1]
+    shortSignal := bearDiv and not bearDiv[1]
+    
+if signalMode == "Только OB"
+    longSignal := inBullOB and not inBullOB[1]
+    shortSignal := inBearOB and not inBearOB[1]
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ВИЗУАЛИЗАЦИЯ
+// ══════════════════════════════════════════════════════════════════════════════
+
+// === Order Blocks ===
+if showBullOB and bullOB_active
+    box.new(bullOB_start, bullOB_high, bar_index, bullOB_low, 
+         border_color=color.new(color.green, 30), 
+         bgcolor=color.new(color.green, 80))
+
+if showBearOB and bearOB_active
+    box.new(bearOB_start, bearOB_high, bar_index, bearOB_low, 
+         border_color=color.new(color.red, 30), 
+         bgcolor=color.new(color.red, 80))
+
+// === Дивергенции ===
+if showStochDiv and bullDiv
+    label.new(bar_index, low, "🟢 Див", color=color.new(color.green, 70), 
+         textcolor=color.white, style=label.style_label_up, size=size.small)
+
+if showStochDiv and bearDiv
+    label.new(bar_index, high, "🔴 Див", color=color.new(color.red, 70), 
+         textcolor=color.white, style=label.style_label_down, size=size.small)
+
+// === VSA метки ===
+if showVSA and climaxUp
+    label.new(bar_index, low, "↑ Сила", color=color.new(color.green, 60), 
+         textcolor=color.white, style=label.style_label_up, size=size.tiny)
+if showVSA and climaxDown
+    label.new(bar_index, high, "↓ Сила", color=color.new(color.red, 60), 
+         textcolor=color.white, style=label.style_label_down, size=size.tiny)
+if showVSA and absorption
+    label.new(bar_index, (high+low)/2, "⚡ Борьба", color=color.new(color.orange, 60), 
+         textcolor=color.white, size=size.tiny)
+if showVSA and stopRun
+    label.new(bar_index, close > open ? high : low, "⚠️ Вынос", 
+         color=color.new(color.purple, 60), textcolor=color.white, size=size.tiny)
+
+// === Паттерны ===
+if showQuasimodo and bullQML
+    label.new(bar_index, low, "QML", color=color.new(color.green, 50), 
+         textcolor=color.white, style=label.style_label_up, size=size.small)
+if showQuasimodo and bearQML
+    label.new(bar_index, high, "QML", color=color.new(color.red, 50), 
+         textcolor=color.white, style=label.style_label_down, size=size.small)
+
+// === Основные сигналы ===
+if longSignal
+    label.new(bar_index, low, "🟢 LONG\nScore: " + str.tostring(longScore), 
+         color=color.new(color.green, 0), textcolor=color.white, 
+         style=label.style_label_up, size=size.large)
+    
+    if showTargets
+        // Стоп за ближайший лоу
+        stopLevel = ta.lowest(low, 5)
+        targetLevel = close + (close - stopLevel) * minRiskReward
+        line.new(bar_index, close, bar_index + 10, close, color=color.green, width=2)
+        label.new(bar_index + 5, close, "Вход", color=color.green, textcolor=color.white, size=size.small)
+        label.new(bar_index + 5, stopLevel, "SL", color=color.red, textcolor=color.white, size=size.small)
+        label.new(bar_index + 5, targetLevel, "TP " + str.tostring(minRiskReward) + ":1", 
+             color=color.green, textcolor=color.white, size=size.small)
+
+if shortSignal
+    label.new(bar_index, high, "🔴 SHORT\nScore: " + str.tostring(shortScore), 
+         color=color.new(color.red, 0), textcolor=color.white, 
+         style=label.style_label_down, size=size.large)
+    
+    if showTargets
+        stopLevel = ta.highest(high, 5)
+        targetLevel = close - (stopLevel - close) * minRiskReward
+        line.new(bar_index, close, bar_index + 10, close, color=color.red, width=2)
+        label.new(bar_index + 5, close, "Вход", color=color.red, textcolor=color.white, size=size.small)
+        label.new(bar_index + 5, stopLevel, "SL", color=color.green, textcolor=color.white, size=size.small)
+        label.new(bar_index + 5, targetLevel, "TP " + str.tostring(minRiskReward) + ":1", 
+             color=color.red, textcolor=color.white, size=size.small)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// АЛЕРТЫ
+// ══════════════════════════════════════════════════════════════════════════════
+
+if enableAlerts
+    if longSignal
+        alert("🟢 SI Smart Flow — Сигнал LONG на " + syminfo.ticker + 
+             " | Score: " + str.tostring(longScore) + 
+             " | Цена: " + str.tostring(close), alert.freq_once_per_bar_close)
+    
+    if shortSignal
+        alert("🔴 SI Smart Flow — Сигнал SHORT на " + syminfo.ticker + 
+             " | Score: " + str.tostring(shortScore) + 
+             " | Цена: " + str.tostring(close), alert.freq_once_per_bar_close)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ПАНЕЛЬ СТОХАСТИКА (отдельная панель)
+// ══════════════════════════════════════════════════════════════════════════════
+
+plot(k, title="%K", color=color.blue, linewidth=2)
+plot(d, title="%D", color=color.orange, linewidth=1)
+hline(80, "Overbought", color=color.red, linestyle=hline.style_dashed)
+hline(20, "Oversold", color=color.green, linestyle=hline.style_dashed)
+
+// Заливка зон перекупленности/перепроданности
+fill(hline(80), hline(100), color=color.new(color.red, 90))
+fill(hline(0), hline(20), color=color.new(color.green, 90))
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ИНФОРМАЦИЯ В ПРАВОМ ВЕРХНЕМ УГЛУ
+// ══════════════════════════════════════════════════════════════════════════════
+
+var label infoLabel = na
+if barstate.islast
+    infoText = "📊 SI Smart Flow\n" + 
+         "Score Long: " + str.tostring(longScore) + "\n" +
+         "Score Short: " + str.tostring(shortScore) + "\n" +
+         (bullOB_active ? "🟢 OB Active\n" : "") +
+         (bearOB_active ? "🔴 OB Active\n" : "")
+    
+    label.delete(infoLabel)
+    infoLabel := label.new(bar_index, high * 1.02, infoText, 
+         color=color.new(color.black, 0), textcolor=color.white, 
+         style=label.style_label_lower_left, size=size.normal)
