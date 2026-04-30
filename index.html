@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
-<!-- AI Presentation v2 | Updated: 2026-04-30 15:40 CST | Slides: 27 -->
+<!-- AI Presentation v2 | Updated: 2026-04-30 15:45 CST | Slides: 27 -->
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -11,7 +12,7 @@
 
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { width: 1920px; min-height: 1080px; font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; background: #FAFBFD; color: #0F172A; -webkit-font-smoothing: antialiased; }
+body { font-family: 'DejaVu Sans', 'Arial', 'Liberation Sans', sans-serif; background: #FAFBFD; color: #0F172A; -webkit-font-smoothing: antialiased; }
 .slide { width: 1920px; height: 1080px; position: relative; padding: 0; overflow: hidden; }
 .header-bar { position: absolute; top: 0; left: 0; right: 0; height: 100px; padding: 24px 70px; display: flex; align-items: center; justify-content: space-between; z-index: 10; }
 .header-bar .title { font-family: 'DejaVu Sans', 'Arial Black', 'Liberation Sans', sans-serif; font-size: 38px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.02em; }
@@ -83,6 +84,22 @@ tr:nth-child(even) td { background: #F1F5F9; }
 }
 .slide-page:last-child {
     page-break-after: auto;
+}
+
+/* Responsive scaling for screens */
+@media screen {
+    body {
+        width: 100%;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+    .slide-page {
+        width: 100vw;
+        height: 100vh;
+        transform-origin: top left;
+        transform: scale(calc(100vw / 1920));
+        margin-bottom: calc(-1080px + (1080px * (100vw / 1920)));
+    }
 }
 </style>
 </head>
