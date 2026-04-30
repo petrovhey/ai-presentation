@@ -691,6 +691,7 @@ body {
     border: 1px solid var(--border);
     transition: var(--transition);
     background: var(--bg-card);
+    cursor: zoom-in;
 }
 
 .case-item:hover {
@@ -705,6 +706,65 @@ body {
     object-fit: cover;
     object-position: top;
     display: block;
+    cursor: zoom-in;
+}
+
+/* === LIGHTBOX === */
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.lightbox.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 8px;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    cursor: zoom-out;
+}
+
+.lightbox.active img {
+    transform: scale(1);
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--text-primary);
+    font-size: 24px;
+    cursor: pointer;
+    transition: var(--transition);
+    backdrop-filter: blur(10px);
+}
+
+.lightbox-close:hover {
+    background: var(--accent-red);
+    border-color: var(--accent-red);
 }
 
 /* === TASKS === */
