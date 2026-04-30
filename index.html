@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<!-- AI Presentation v2 | Updated: 2026-04-30 15:45 CST | Slides: 27 -->
+<!-- AI Presentation v2 | Updated: 2026-04-30 15:50 CST | Slides: 27 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -91,14 +91,13 @@ tr:nth-child(even) td { background: #F1F5F9; }
     body {
         width: 100%;
         min-height: 100vh;
-        overflow-x: hidden;
+        overflow-x: auto;
     }
     .slide-page {
-        width: 100vw;
-        height: 100vh;
-        transform-origin: top left;
-        transform: scale(calc(100vw / 1920));
-        margin-bottom: calc(-1080px + (1080px * (100vw / 1920)));
+        width: 100%;
+        min-height: 100vh;
+        height: auto;
+        overflow: visible;
     }
 }
 </style>
