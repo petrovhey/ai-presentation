@@ -7,13 +7,13 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Навигация -->
     <nav class="nav" id="nav">
         <div class="nav-container">
-            <a href="#hero" class="nav-logo"><span>AI</span> Presentation</a>
+            <a href="#hero" class="nav-logo">AI Presentation</a>
             <div class="nav-links">
                 <a href="#what-is-ai">Что такое ИИ</a>
                 <a href="#modalities">Модальности</a>
@@ -32,40 +32,32 @@
     <!-- Герой-секция -->
     <section class="hero" id="hero">
         <div class="hero-content">
-            <div class="hero-badge">
-                <span class="dot"></span>
-                <span>Доклад для сотрудников компании • 2026</span>
-            </div>
-            <h1 class="hero-title">Нейросети и <span class="gradient">ИИ</span></h1>
+            <h1 class="hero-title">Нейросети и ИИ</h1>
             <p class="hero-subtitle">как использовать в работе</p>
             <div class="hero-line"></div>
-            <p class="hero-meta">Практическое руководство по инструментам искусственного интеллекта</p>
+            <p class="hero-meta">Доклад для сотрудников компании • 2026</p>
         </div>
-        <div class="hero-scroll">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 5v14M5 12l7 7 7-7"/>
-            </svg>
-        </div>
+        <div class="hero-bg"></div>
     </section>
 
     <!-- Что такое ИИ -->
-    <section class="section" id="what-is-ai">
+    <section class="section section-white" id="what-is-ai">
         <div class="container">
             <h2 class="section-title">Что такое ИИ</h2>
             <p class="section-lead">Программа, которая учится на данных и делает выводы, которые раньше требовали человека</p>
             
             <div class="cards-grid three">
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-num" style="background: #2563EB;">01</div>
                     <h3>Обучение</h3>
                     <p>Модель «читает» огромные массивы текста, кода, изображений — и запоминает закономерности. Это как если бы человек прочитал миллионы книг за одну ночь.</p>
                 </div>
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-num" style="background: #7C3AED;">02</div>
                     <h3>Инференс</h3>
                     <p>При получении запроса модель предсказывает наиболее вероятный ответ, основываясь на том, что выучила. Не думает — считает вероятности.</p>
                 </div>
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-num" style="background: #EC4899;">03</div>
                     <h3>Токены</h3>
                     <p>Текст разбивается на маленькие кусочки. 1 токен ≈ 0.75 слова. Контекстное окно = сколько токенов модель помнит одновременно.</p>
@@ -75,43 +67,43 @@
     </section>
 
     <!-- Модальности -->
-    <section class="section section-alt" id="modalities">
+    <section class="section section-gray" id="modalities">
         <div class="container">
             <h2 class="section-title">Модальности</h2>
             <p class="section-lead">Что модель может воспринимать на вход — для рабочих задач</p>
             
             <div class="cards-grid four">
-                <div class="card card-small animate">
+                <div class="card card-small card-animate">
                     <div class="card-accent" style="background: #2563EB;"></div>
                     <h4>Текст</h4>
                     <p>Письма, документы, анализ, ответы</p>
                 </div>
-                <div class="card card-small animate">
+                <div class="card card-small card-animate">
                     <div class="card-accent" style="background: #7C3AED;"></div>
                     <h4>Код</h4>
                     <p>Скрипты, баги, ревью, объяснение</p>
                 </div>
-                <div class="card card-small animate">
+                <div class="card card-small card-animate">
                     <div class="card-accent" style="background: #EC4899;"></div>
                     <h4>Изображение</h4>
                     <p>Скриншот → цифры. Фото → аналоги. Скан → текст</p>
                 </div>
-                <div class="card card-small animate">
+                <div class="card card-small card-animate">
                     <div class="card-accent" style="background: #22C55E;"></div>
                     <h4>Аудио</h4>
                     <p>Записи совещаний → расшифровка. Голосовые → текст</p>
                 </div>
-                <div class="card card-small animate">
+                <div class="card card-small card-animate">
                     <div class="card-accent" style="background: #F59E0B;"></div>
                     <h4>Видео</h4>
                     <p>Ролики → summary, ключевые моменты</p>
                 </div>
-                <div class="card card-small animate">
+                <div class="card card-small card-animate">
                     <div class="card-accent" style="background: #2563EB;"></div>
                     <h4>Документы</h4>
                     <p>Договоры → риски. Отчёты → тренды. Таблицы → ошибки</p>
                 </div>
-                <div class="card card-small animate">
+                <div class="card card-small card-animate">
                     <div class="card-accent" style="background: #7C3AED;"></div>
                     <h4>Многомодальность</h4>
                     <p>Скрин + вопрос = анализ. Всё вместе</p>
@@ -121,11 +113,11 @@
     </section>
 
     <!-- Сравнительная таблица -->
-    <section class="section" id="comparison">
+    <section class="section section-white" id="comparison">
         <div class="container">
             <h2 class="section-title">Сравнительная таблица моделей</h2>
             
-            <div class="table-wrapper card animate">
+            <div class="table-wrapper card-animate">
                 <table class="models-table">
                     <thead>
                         <tr>
@@ -158,14 +150,14 @@
     </section>
 
     <!-- Модели -->
-    <section class="section section-alt" id="models">
+    <section class="section section-gray" id="models">
         <div class="container">
             <h2 class="section-title">Модели</h2>
             <p class="section-lead">8 ключевых ИИ-моделей для работы</p>
             
             <div class="models-list">
                 <!-- Claude -->
-                <div class="model-card card animate">
+                <div class="model-card card-animate">
                     <div class="model-header" style="background: linear-gradient(135deg, #2563EB, #1d4ed8);">
                         <h3>Claude 4.7</h3>
                         <span>Anthropic • Лидер Arena #1</span>
@@ -198,7 +190,7 @@
                 </div>
 
                 <!-- GPT -->
-                <div class="model-card card animate">
+                <div class="model-card card-animate">
                     <div class="model-header" style="background: linear-gradient(135deg, #7C3AED, #6d28d9);">
                         <h3>GPT-5.4</h3>
                         <span>OpenAI • Самая известная модель</span>
@@ -231,7 +223,7 @@
                 </div>
 
                 <!-- Gemini -->
-                <div class="model-card card animate">
+                <div class="model-card card-animate">
                     <div class="model-header" style="background: linear-gradient(135deg, #EC4899, #db2777);">
                         <h3>Gemini 3.1</h3>
                         <span>Google • Google-экосистема</span>
@@ -263,7 +255,7 @@
                 </div>
 
                 <!-- Perplexity -->
-                <div class="model-card card animate">
+                <div class="model-card card-animate">
                     <div class="model-header" style="background: linear-gradient(135deg, #22C55E, #16a34a);">
                         <h3>Perplexity</h3>
                         <span>Perplexity • Поисковик с ИИ</span>
@@ -296,7 +288,7 @@
                 </div>
 
                 <!-- Grok -->
-                <div class="model-card card animate">
+                <div class="model-card card-animate">
                     <div class="model-header" style="background: linear-gradient(135deg, #F59E0B, #d97706);">
                         <h3>Grok 4</h3>
                         <span>xAI • Доступ к X/Twitter</span>
@@ -329,7 +321,7 @@
                 </div>
 
                 <!-- Kimi -->
-                <div class="model-card card animate">
+                <div class="model-card card-animate">
                     <div class="model-header" style="background: linear-gradient(135deg, #06B6D4, #0891b2);">
                         <h3>Kimi 2.6</h3>
                         <span>Moonshot AI • Без VPN</span>
@@ -361,7 +353,7 @@
                 </div>
 
                 <!-- DeepSeek -->
-                <div class="model-card card animate">
+                <div class="model-card card-animate">
                     <div class="model-header" style="background: linear-gradient(135deg, #FBBF24, #f59e0b);">
                         <h3>DeepSeek V4</h3>
                         <span>DeepSeek • Цена/качество #1</span>
@@ -393,7 +385,7 @@
                 </div>
 
                 <!-- Qwen -->
-                <div class="model-card card animate">
+                <div class="model-card card-animate">
                     <div class="model-header" style="background: linear-gradient(135deg, #EF4444, #dc2626);">
                         <h3>Qwen 3.6</h3>
                         <span>Alibaba • Универсальная (без VPN)</span>
@@ -428,61 +420,61 @@
     </section>
 
     <!-- Фишки -->
-    <section class="section" id="features">
+    <section class="section section-white" id="features">
         <div class="container">
             <h2 class="section-title">Зачем именно эта модель?</h2>
             
             <div class="features-grid">
-                <div class="feature-item card animate">
+                <div class="feature-item card-animate">
                     <div class="feature-dot" style="background: #2563EB;"></div>
                     <div>
                         <h4>Claude</h4>
                         <p>4M контекст + минимум галлюцинаций → точность на длинных документах</p>
                     </div>
                 </div>
-                <div class="feature-item card animate">
+                <div class="feature-item card-animate">
                     <div class="feature-dot" style="background: #7C3AED;"></div>
                     <div>
                         <h4>GPT-5.4</h4>
                         <p>Голос + Canvas + всё-в-одном → универсальный помощник</p>
                     </div>
                 </div>
-                <div class="feature-item card animate">
+                <div class="feature-item card-animate">
                     <div class="feature-dot" style="background: #EC4899;"></div>
                     <div>
                         <h4>Gemini</h4>
                         <p>Notebook LM + 2M контекст + Google → работа в Google-экосистеме</p>
                     </div>
                 </div>
-                <div class="feature-item card animate">
+                <div class="feature-item card-animate">
                     <div class="feature-dot" style="background: #22C55E;"></div>
                     <div>
                         <h4>Perplexity</h4>
                         <p>Поиск с источниками в реальном времени → факты, а не домыслы</p>
                     </div>
                 </div>
-                <div class="feature-item card animate">
+                <div class="feature-item card-animate">
                     <div class="feature-dot" style="background: #F59E0B;"></div>
                     <div>
                         <h4>Grok</h4>
                         <p>DeepSearch + Agentic Tasks + доступ к X → тренды и агенты</p>
                     </div>
                 </div>
-                <div class="feature-item card animate">
+                <div class="feature-item card-animate">
                     <div class="feature-dot" style="background: #06B6D4;"></div>
                     <div>
                         <h4>Kimi</h4>
                         <p>Agent Swarm + 2M контекст без VPN → сложные задачи без VPN</p>
                     </div>
                 </div>
-                <div class="feature-item card animate">
+                <div class="feature-item card-animate">
                     <div class="feature-dot" style="background: #FBBF24;"></div>
                     <div>
                         <h4>DeepSeek</h4>
                         <p>MoE + дёшевый API + DeepThink → экономия и сложные расчёты</p>
                     </div>
                 </div>
-                <div class="feature-item card animate">
+                <div class="feature-item card-animate">
                     <div class="feature-dot" style="background: #EF4444;"></div>
                     <div>
                         <h4>Qwen</h4>
@@ -494,25 +486,25 @@
     </section>
 
     <!-- LM Arena -->
-    <section class="section section-alt" id="arena">
+    <section class="section section-gray" id="arena">
         <div class="container">
             <h2 class="section-title">LM Arena</h2>
             <p class="section-lead">Бесплатный способ попробовать любую модель</p>
             
             <div class="cards-grid two">
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-accent" style="background: #2563EB;"></div>
                     <h3>Как работает</h3>
                     <p>Вводите вопрос → получаете два ответа от анонимных моделей → голосуете за лучший → узнаёте, кто победил.<br><br>Рейтинг Elo — объективная таблица лидеров.</p>
                 </div>
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-accent" style="background: #7C3AED;"></div>
                     <h3>Что есть в 2026</h3>
                     <p>Text Arena — текстовые модели.<br>Video Arena — генерация видео.<br>Image Arena — картинки.<br>Мультимодальные сравнения.</p>
                 </div>
             </div>
             
-            <div class="badge-container card animate">
+            <div class="badge-container card-animate">
                 <span class="badge">Регистрация бесплатная. Карта не нужна.</span>
                 <p class="text-muted">lmarena.ai</p>
             </div>
@@ -520,76 +512,76 @@
     </section>
 
     <!-- Robomonkey -->
-    <section class="section" id="robomonkey">
+    <section class="section section-white" id="robomonkey">
         <div class="container">
             <h2 class="section-title">Robomonkey</h2>
             <p class="section-lead">Автоматизация процессов без программирования</p>
             
             <div class="cards-grid two">
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-accent" style="background: #7C3AED;"></div>
                     <h3>Как работает</h3>
                     <p>Описываете задачу текстом → Robomonkey генерирует Chrome-расширение → устанавливаете в браузер → работает само.<br><br>Сбор данных, парсинг, автозаполнение форм, мониторинг цен.</p>
                 </div>
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-accent" style="background: #EC4899;"></div>
                     <h3>Альтернативы 2026</h3>
                     <p>Stagehand — для разработчиков (open-source).<br>Gumloop — no-code для бизнеса.<br>Browser Use — Python для кодеров.<br>Make.com / n8n — связка сервисов.</p>
                 </div>
             </div>
             
-            <div class="badge-container card animate">
+            <div class="badge-container card-animate">
                 <span class="badge">Экономия 90–95% стоимости виртуального ассистента</span>
             </div>
         </div>
     </section>
 
     <!-- AI-разработка -->
-    <section class="section section-alt" id="ai-dev">
+    <section class="section section-gray" id="ai-dev">
         <div class="container">
             <h2 class="section-title">AI-разработка без программиста</h2>
             
             <div class="cards-grid four">
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-accent" style="background: #2563EB;"></div>
                     <h4>Lovable</h4>
                     <p>Генерация веб-приложений и сайтов из текста → MVP, лендинг, внутренний инструмент</p>
                 </div>
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-accent" style="background: #7C3AED;"></div>
                     <h4>Blink.new</h4>
                     <p>Создание сайтов с AI-дизайном → красивый сайт за минуты</p>
                 </div>
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-accent" style="background: #22C55E;"></div>
                     <h4>Bolt.new</h4>
                     <p>AI-разработка на Next.js / React → настоящий код под капотом</p>
                 </div>
-                <div class="card animate">
+                <div class="card card-animate">
                     <div class="card-accent" style="background: #F59E0B;"></div>
                     <h4>Hercules.app</h4>
                     <p>Внутренние бизнес-приложения → CRM, дашборды, формы без IT</p>
                 </div>
             </div>
             
-            <div class="text-block card animate">
+            <div class="text-block card-animate">
                 <p>Принцип: «Сделай сайт для приёма заявок с полями имя, телефон, выбор услуги и отправкой в Telegram» — платформа генерирует работающий сайт. Не нужно уметь кодить.</p>
             </div>
             
-            <div class="badge-container card animate">
+            <div class="badge-container card-animate">
                 <span class="badge" style="background: #2563EB;">Для бизнеса: прототипы за часы, внутренние инструменты без IT</span>
             </div>
         </div>
     </section>
 
     <!-- Отделы -->
-    <section class="section" id="departments">
+    <section class="section section-white" id="departments">
         <div class="container">
             <h2 class="section-title">Задачи по отделам</h2>
             <p class="section-lead">Как ИИ помогает каждому отделу компании</p>
             
             <!-- Бухгалтерия -->
-            <div class="dept-section card animate" id="accounting">
+            <div class="dept-section card-animate" id="accounting">
                 <div class="dept-header" style="background: linear-gradient(135deg, #22C55E, #16a34a);">
                     <h3>БУХГАЛТЕРИЯ</h3>
                     <span>Распознавание, сверка, проверка</span>
@@ -634,7 +626,7 @@
             </div>
 
             <!-- Финансы -->
-            <div class="dept-section card animate" id="finance">
+            <div class="dept-section card-animate" id="finance">
                 <div class="dept-header" style="background: linear-gradient(135deg, #2563EB, #1d4ed8);">
                     <h3>ФИНАНСЫ</h3>
                     <span>Прогнозирование, бюджеты, сценарии</span>
@@ -679,7 +671,7 @@
             </div>
 
             <!-- Юристы -->
-            <div class="dept-section card animate" id="legal">
+            <div class="dept-section card-animate" id="legal">
                 <div class="dept-header" style="background: linear-gradient(135deg, #7C3AED, #6d28d9);">
                     <h3>ЮРИСТЫ</h3>
                     <span>Анализ договоров, риски, претензии</span>
@@ -724,7 +716,7 @@
             </div>
 
             <!-- Продакты -->
-            <div class="dept-section card animate" id="product">
+            <div class="dept-section card-animate" id="product">
                 <div class="dept-header" style="background: linear-gradient(135deg, #F59E0B, #d97706);">
                     <h3>ПРОДАКТЫ</h3>
                     <span>Отзывы, ТЗ, конкуренты, приоритизация</span>
@@ -769,7 +761,7 @@
             </div>
 
             <!-- Коммерческий -->
-            <div class="dept-section card animate" id="commercial">
+            <div class="dept-section card-animate" id="commercial">
                 <div class="dept-header" style="background: linear-gradient(135deg, #EC4899, #db2777);">
                     <h3>КОММЕРЧЕСКИЙ</h3>
                     <span>Скрипты, КП, воронка, реактивация</span>
@@ -814,7 +806,7 @@
             </div>
 
             <!-- Топы -->
-            <div class="dept-section card animate" id="management">
+            <div class="dept-section card-animate" id="management">
                 <div class="dept-header" style="background: linear-gradient(135deg, #FBBF24, #f59e0b);">
                     <h3>ТОП-МЕНЕДЖМЕНТ</h3>
                     <span>Стратегия, due diligence, выходы на рынки</span>
@@ -859,7 +851,7 @@
             </div>
 
             <!-- Аналитики -->
-            <div class="dept-section card animate" id="analytics">
+            <div class="dept-section card-animate" id="analytics">
                 <div class="dept-header" style="background: linear-gradient(135deg, #06B6D4, #0891b2);">
                     <h3>АНАЛИТИКИ</h3>
                     <span>Данные, SQL, визуализация, прогнозирование</span>
@@ -904,7 +896,7 @@
             </div>
 
             <!-- HR -->
-            <div class="dept-section card animate" id="hr">
+            <div class="dept-section card-animate" id="hr">
                 <div class="dept-header" style="background: linear-gradient(135deg, #22C55E, #16a34a);">
                     <h3>HR И ПОДБОР</h3>
                     <span>Вакансии, скрининг, адаптация, обратная связь</span>
@@ -974,7 +966,7 @@
     </section>
 
     <!-- Слайд 27: Задачи -->
-    <section class="section section-alt" id="tasks">
+    <section class="section section-gray" id="tasks">
         <div class="container">
             <h2 class="section-title">Задачи</h2>
             <p class="section-lead">которые сейчас протестируем</p>
@@ -1015,59 +1007,59 @@
     </section>
 
     <!-- Рекомендации -->
-    <section class="section section-alt" id="recommendations">
+    <section class="section section-gray" id="recommendations">
         <div class="container">
             <h2 class="section-title">Рекомендации по работе с ИИ</h2>
             
             <div class="recommendations-grid">
-                <div class="rec-card card animate">
+                <div class="rec-card card-animate">
                     <div class="rec-num" style="background: #2563EB;">01</div>
                     <h4>Если не уверены — обсудите с другой моделью</h4>
                     <p>Задайте тот же вопрос Claude, GPT и DeepSeek. Если все три говорят одно — можно доверять.</p>
                 </div>
-                <div class="rec-card card animate">
+                <div class="rec-card card-animate">
                     <div class="rec-num" style="background: #7C3AED;">02</div>
                     <h4>Формулируйте результат, не задачу</h4>
                     <p>Плохо: «Вот отчёт, сделай что-нибудь». Хорошо: «Выдели 3 тренда и предложи 2 действия».</p>
                 </div>
-                <div class="rec-card card animate">
+                <div class="rec-card card-animate">
                     <div class="rec-num" style="background: #22C55E;">03</div>
                     <h4>Вначале план, потом реализация</h4>
                     <p>Сначала составьте план и согласуйте его. Только потом выполняйте.</p>
                 </div>
-                <div class="rec-card card animate">
+                <div class="rec-card card-animate">
                     <div class="rec-num" style="background: #F59E0B;">04</div>
                     <h4>Заставьте ИИ задать вопросы</h4>
                     <p>«Есть вопросы? Всё ли понятно?» — лучшие результаты даёт диалог, не монолог.</p>
                 </div>
-                <div class="rec-card card animate">
+                <div class="rec-card card-animate">
                     <div class="rec-num" style="background: #EC4899;">05</div>
                     <h4>Разбивайте сложное на шаги</h4>
                     <p>Не «напиши бизнес-план». Разбейте: структура → рынок → экономика → риски.</p>
                 </div>
-                <div class="rec-card card animate">
+                <div class="rec-card card-animate">
                     <div class="rec-num" style="background: #2563EB;">06</div>
                     <h4>Давайте контекст</h4>
                     <p>«Ты финдиректор, готовишь презентацию для совета директоров» — результат в разы точнее.</p>
                 </div>
-                <div class="rec-card card animate">
+                <div class="rec-card card-animate">
                     <div class="rec-num" style="background: #EF4444;">07</div>
                     <h4>Проверяйте факты</h4>
                     <p>ИИ уверенно выдумывает даты и ссылки. Всегда перепроверяйте.</p>
                 </div>
-                <div class="rec-card card animate">
+                <div class="rec-card card-animate">
                     <div class="rec-num" style="background: #7C3AED;">08</div>
                     <h4>Системные промпты для рутины</h4>
                     <p>«Ты аналитик. Каждый CSV → аномалии, топ-3 тренда, рекомендации» — экономит время.</p>
                 </div>
-                <div class="rec-card card animate">
+                <div class="rec-card card-animate">
                     <div class="rec-num" style="background: #22C55E;">09</div>
                     <h4>Конфиденциальность</h4>
                     <p>Для чувствительных данных — локальные модели (DeepSeek, Qwen) или корпоративные тарифы.</p>
                 </div>
             </div>
             
-            <div class="text-block card animate" style="margin-top: 60px;">
+            <div class="text-block card-animate" style="margin-top: 60px;">
                 <p style="font-weight: 600; color: #0F172A; font-size: 1.2em;">Главное: ИИ — инструмент. Результат зависит от того, насколько точно вы формулируете задачу.</p>
             </div>
         </div>
